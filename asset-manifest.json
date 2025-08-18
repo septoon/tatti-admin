@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/tatti-admin/static/css/main.a334b405.css",
-    "main.js": "/tatti-admin/static/js/main.0b8b9164.js",
+    "main.css": "/tatti-admin/static/css/main.12e8eb3a.css",
+    "main.js": "/tatti-admin/static/js/main.d5e732d6.js",
     "index.html": "/tatti-admin/index.html",
-    "main.a334b405.css.map": "/tatti-admin/static/css/main.a334b405.css.map",
-    "main.0b8b9164.js.map": "/tatti-admin/static/js/main.0b8b9164.js.map"
+    "main.12e8eb3a.css.map": "/tatti-admin/static/css/main.12e8eb3a.css.map",
+    "main.d5e732d6.js.map": "/tatti-admin/static/js/main.d5e732d6.js.map"
   },
   "entrypoints": [
-    "static/css/main.a334b405.css",
-    "static/js/main.0b8b9164.js"
+    "static/css/main.12e8eb3a.css",
+    "static/js/main.d5e732d6.js"
   ]
 }
