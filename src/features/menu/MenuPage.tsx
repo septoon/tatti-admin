@@ -94,14 +94,14 @@ export default function MenuPage() {
   return (
     <div className="space-y-4">
         <input
-          className="border rounded px-2 py-2 w-full"
+          className="rounded px-2 py-2 w-full"
           type="search"
           placeholder="Поиск по названию"
           value={query}
           onChange={e => setQuery(e.target.value)}
         />
       <div className="flex items-center gap-2">
-        <select className="border rounded px-2 py-1" value={filter} onChange={e=>setFilter(e.target.value)}>
+        <select className="rounded px-2 py-1" value={filter} onChange={e=>setFilter(e.target.value)}>
           <option value="all">Все категории</option>
           {cats.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
@@ -171,11 +171,11 @@ export default function MenuPage() {
       {/* Mobile cards */}
       <div className="grid gap-3 md:hidden">
         {items.map(it => (
-          <div key={it.id} className="border rounded p-3 space-y-3">
+          <div key={it.id} className="shadow-lg rounded p-3 mb-4 space-y-3">
             <div className="space-y-1">
               <div className="text-xs text-slate-500">Категория</div>
               <input
-                className="border rounded px-2 py-1 w-full"
+                className="rounded-md px-2 py-1 w-full"
                 value={getCatName(it.categoryId)}
                 onChange={e=>renameCategory(it.categoryId, e.target.value)}
               />
@@ -184,7 +184,7 @@ export default function MenuPage() {
             <div className="space-y-1">
               <div className="text-xs text-slate-500">Название</div>
               <input
-                className="border rounded px-2 py-1 w-full"
+                className="rounded-md px-2 py-1 w-full"
                 value={it.title}
                 onChange={e=>updateItem(it.id,{ title: e.target.value })}
               />
@@ -195,7 +195,7 @@ export default function MenuPage() {
                 <div className="text-xs text-slate-500">Цена</div>
                 <input
                   type="number"
-                  className="border rounded px-2 py-1 w-full"
+                  className="rounded-md px-2 py-1 w-full"
                   value={it.price}
                   onChange={e=>updateItem(it.id,{ price: Number(e.target.value) })}
                 />
@@ -203,7 +203,7 @@ export default function MenuPage() {
               <div className="flex-1 space-y-1">
                 <div className="text-xs text-slate-500">Картинка (URL)</div>
                 <input
-                  className="border rounded px-2 py-1 w-full"
+                  className="rounded-md px-2 py-1 w-full"
                   value={it.images?.[0]?.url ?? ''}
                   onChange={e=>updateItem(it.id, { images: [{ id: 'img-1', url: e.target.value }] })}
                 />
@@ -213,7 +213,7 @@ export default function MenuPage() {
             <div className="space-y-1">
               <div className="text-xs text-slate-500">Описание (по строкам)</div>
               <textarea
-                className="border rounded px-2 py-1 w-full h-28"
+                className="rounded-md px-2 py-1 w-full h-28"
                 value={it.description.join('\n')}
                 onChange={e=>updateItem(it.id,{ description: e.target.value.split('\n').filter(Boolean) })}
               />
@@ -221,7 +221,7 @@ export default function MenuPage() {
             <div className="pt-1">
               <button
                 onClick={() => confirm(it.id)}
-                className="w-full px-3 py-2 rounded border text-red-600 hover:bg-red-50"
+                className="w-full px-3 py-2 rounded-md bg-red text-light hover:bg-red-50"
                 title="Удалить блюдо"
               >
                 Удалить блюдо

@@ -13,9 +13,9 @@ export function NavTabs({ value, onChange }: { value: string; onChange: (k: stri
     { key: 'info', label: 'Инфо' },
   ]
   return (
-    <div className="flex gap-2 flex-wrap fixed top-0 left-0 right-0 p-4 pb-0 bg-light/60 backdrop-blur-md">
+    <div className="z-99 flex gap-2 flex-wrap fixed top-0 left-0 right-0 p-4 pb-0 bg-light/60 dark:bg-dark/60 backdrop-blur-md rounded-b-3xl">
       <div className='w-full h-full flex flex-col items-center'>
-        <h1 className='mt-20 mb-8'>{WebApp.initDataUnsafe?.user?.first_name ?? 'Тигран'}</h1>
+        <h1 className='mt-12 mb-8 px-4 text-dark dark:text-light font-bold'>{WebApp.initDataUnsafe?.user?.first_name ?? 'Тигран'}</h1>
         <div className='w-full flex overflow-x-scroll pb-4'>
           {tabs.map(t => (
           <button
