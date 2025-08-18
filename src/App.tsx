@@ -13,20 +13,43 @@ export default function App() {
   const [loading, setLoading] = React.useState(true);
 
 useEffect(() => {
+  let cancelled = false;
   const timer = setTimeout(() => {
-    try {
-      if (!WebApp) {
-        console.error('Telegram WebApp API недоступен.');
-        return;
+    const init = async () => {
+      try {
+        if (WebApp) {
+          WebApp.ready();
+          WebApp.expand();
+        } else {
+          console.error('Telegram WebApp API недоступен.');
+        }
+        // дожидаемся доступности API (или тайм‑аут)
+        const controller = new AbortController();
+        const pingTimeout = setTimeout(() => controller.abort(), 4000);
+        try {
+          await fetch('https://api.tatti-shef.ru/ping', {
+            method: 'GET',
+            cache: 'no-store',
+            signal: controller.signal,
+          });
+        } catch (e) {
+          console.warn('ping failed or timed out', e);
+        } finally {
+          clearTimeout(pingTimeout);
+        }
+      } catch (error) {
+        console.error('Ошибка при инициализации Telegram WebApp:', error);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      WebApp.ready();
-      WebApp.expand();
-    } catch (error) {
-      console.error('Ошибка при инициализации Telegram WebApp:', error);
-    }
-  }, 500); // задержка в полсекунды
+    };
+    init();
+  }, 500); // небольшая задержка, чтобы TWA успел инициализироваться
 
-  return () => clearTimeout(timer);
+  return () => {
+    cancelled = true;
+    clearTimeout(timer);
+  };
 }, []);
 
   const [tab, setTab] = React.useState('menu')
