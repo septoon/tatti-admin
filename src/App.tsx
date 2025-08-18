@@ -1,6 +1,6 @@
 import React from 'react'
 import axios from 'axios'
-import { WebApp } from '@twa-dev/sdk'
+import WebApp from '@twa-dev/sdk'
 import { useTelegramInit } from './lib/tg'
 import { NavTabs } from './components/NavTabs'
 import MenuPage from './features/menu/MenuPage'
