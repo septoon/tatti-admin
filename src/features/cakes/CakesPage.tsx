@@ -119,7 +119,7 @@ export default function CakesPage() {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <div className="font-semibold">Торты</div>
-        <button onClick={addRow} className="ml-auto px-3 py-1.5 rounded border">+ Строка</button>
+        <button onClick={addRow} className="ml-auto px-3 py-1.5 rounded-md bg-mainBtn text-white">+ Строка</button>
        </div>
       <SimpleItemsEditor rows={rows} setRows={setRows} onDeleteRow={deleteRow} enableImageUpload={true} />
       <MainButton text={saving ? 'Сохранение...' : 'Сохранить'} onClick={onSave} disabled={saving} />

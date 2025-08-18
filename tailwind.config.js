@@ -30,11 +30,6 @@ module.exports = {
         pacifico: ['Pacifico', 'cursive'],
         comfortaa: ['Comfortaa', 'sans-serif'],
       },
-      backgroundImage: {
-        'shd': "url('/img/bg-shd.jpg')",
-        'menu': "url('/img/menu-icon.png')",
-        'main': "url('/img/bg-main.webp')",
-      },
       backgroundPosition: {
         bottom: 'bottom',
         'bottom-4': 'center bottom 1rem',
@@ -60,6 +55,8 @@ module.exports = {
     colors: {
       'dark': "#14181C",
       'light': '#e9eff8',
+      'mainBtn': '#0C61FD',
+      'darkCard': '#192025',
       'transparent': 'transparent',
       'white': '#ffffff',
       'black': '#000000',

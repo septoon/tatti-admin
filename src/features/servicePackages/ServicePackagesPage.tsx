@@ -140,14 +140,14 @@ export default function ServicePackagesPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-2">
         <div className="font-semibold">Пакеты услуг</div>
-        <button onClick={addPkg} className="ml-auto px-3 py-1.5 rounded border">+ Пакет</button>
+        <button onClick={addPkg} className="ml-auto px-3 py-1.5 rounded-md bg-mainBtn text-white">+ Пакет</button>
       </div>
 
       <SimpleItemsEditor rows={pkgs} setRows={setPkgs} onDeleteRow={delPkg} enableImageUpload={true} />
 
       <div className="flex items-center gap-2 pt-4">
         <div className="font-semibold">Дополнительно</div>
-        <button onClick={addExtra} className="ml-auto px-3 py-1.5 rounded border">+ Услуга</button>
+        <button onClick={addExtra} className="ml-auto px-3 py-1.5 rounded-md bg-mainBtn text-white">+ Услуга</button>
       </div>
 
       <SimpleItemsEditor rows={extras} setRows={setExtras} onDeleteRow={delExtra} enableImageUpload={true} />

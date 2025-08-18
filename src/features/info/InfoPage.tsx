@@ -69,7 +69,7 @@ export default function InfoPage() {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <div className="font-semibold">Инфо</div>
-        <button onClick={addRow} className="ml-auto px-3 py-1.5 rounded border">+ Картинка</button>
+        <button onClick={addRow} className="ml-auto px-3 py-1.5 rounded-md bg-mainBtn text-white">+ Картинка</button>
       </div>
       {/* Используем универсальный редактор, но фактически редактируем только поле image */}
       <SimpleItemsEditor rows={rows} setRows={setRows} onDeleteRow={deleteRow} enableImageUpload={true} />
