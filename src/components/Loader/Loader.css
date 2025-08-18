@@ -21,8 +21,11 @@
 }
 
 @media (prefers-color-scheme: dark) {
+  .loader {
+    background:linear-gradient(90deg,#0C61FD 50%,#0000 0) right/200% 100%;
+  }
   .loader::before {
-    background-image: linear-gradient(90deg, #0C61FD 50%, #14181C 0);
+    background-image: linear-gradient(90deg, #14181C 50%, #0C61FD 0);
   }
 }
 
