@@ -119,19 +119,13 @@ export default function ServicePackagesPage() {
     WebApp.HapticFeedback.impactOccurred('heavy')
     setPkgs(prev => [...prev, { name: '', price: 0, image: '', description: [] }])
   }
-  const delPkg = (idx: number) => {
-    WebApp.HapticFeedback.impactOccurred('heavy')
-    setPkgs(prev => prev.filter((_, i) => i !== idx))
-  }
+  const delPkg = (idx: number) => setPkgs(prev => prev.filter((_, i) => i !== idx))
 
   const addExtra = () => {
     WebApp.HapticFeedback.impactOccurred('heavy')
     setExtras(prev => [...prev, { name: '', price: 0, image: '', description: [] }])
   }
-  const delExtra = (idx: number) => {
-    WebApp.HapticFeedback.impactOccurred('heavy')
-    setExtras(prev => prev.filter((_, i) => i !== idx))
-  }
+  const delExtra = (idx: number) => setExtras(prev => prev.filter((_, i) => i !== idx))
 
   async function onSave() {
     setSaving(true)

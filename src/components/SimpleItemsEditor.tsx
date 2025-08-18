@@ -132,10 +132,7 @@ export default function SimpleItemsEditor({
               )}
               <td className="p-2 text-right">
                 <button
-                  onClick={() => {
-                    WebApp.HapticFeedback.impactOccurred('heavy')
-                    onDeleteRow?.(i)
-                  }}
+                  onClick={() => onDeleteRow?.(i)}
                   className="ml-auto bg-red text-white opacity-80 px-2 py-0.5 rounded-md z-0">
                   Удалить
                 </button>
@@ -193,10 +190,7 @@ export default function SimpleItemsEditor({
           )}
           <div className="pt-2 text-right">
             <button
-              onClick={() => {
-                WebApp.HapticFeedback.impactOccurred('heavy')
-                onDeleteRow?.(i)
-              }}
+              onClick={() => onDeleteRow?.(i)}
               className="ml-auto bg-red text-white  px-2 py-0.5 rounded-md">
               Удалить
             </button>
