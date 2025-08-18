@@ -1,4 +1,5 @@
 import React from 'react'
+import WebApp from '@twa-dev/sdk'
 
 type Tab = { key: string; label: string }
 
@@ -17,7 +18,10 @@ export function NavTabs({ value, onChange }: { value: string; onChange: (k: stri
         <button
           key={t.key}
           className={`px-3 py-1 rounded-full border ${value===t.key ? 'bg-[#2EA1FF] text-white border-[#2EA1FF]' : 'bg-white text-black border-slate-300'}`}
-          onClick={() => onChange(t.key)}
+          onClick={() => {
+            WebApp.HapticFeedback.impactOccurred('heavy')
+            onChange(t.key)
+          }}
         >
           {t.label}
         </button>

@@ -2,6 +2,7 @@ import React from 'react'
 import { getFile, putFile } from '../../lib/api'
 import SimpleItemsEditor from '../../components/SimpleItemsEditor'
 import Loader from '../../components/Loader/Loader'
+import { MainButton } from '@twa-dev/sdk/react'
 
 // Строка редактора для INFO (используем только image, остальные поля игнорируются при сохранении)
 type Row = {
@@ -69,11 +70,11 @@ export default function InfoPage() {
       <div className="flex items-center gap-2">
         <div className="font-semibold">Инфо</div>
         <button onClick={addRow} className="ml-auto px-3 py-1.5 rounded border">+ Картинка</button>
-        <button onClick={onSave} disabled={saving} className="px-3 py-1.5 rounded bg-black text-white disabled:opacity-50">{saving ? 'Сохранение...' : 'Сохранить'}</button>
       </div>
       {/* Используем универсальный редактор, но фактически редактируем только поле image */}
       <SimpleItemsEditor rows={rows} setRows={setRows} onDeleteRow={deleteRow} enableImageUpload={true} />
       <div className="text-xs text-slate-500">Совет: редактируй только колонку <b>Картинка (URL)</b>. Остальные поля будут проигнорированы при сохранении.</div>
+      <MainButton text={saving ? 'Сохранение...' : 'Сохранить'} onClick={onSave} disabled={saving} />
     </div>
   )
 }

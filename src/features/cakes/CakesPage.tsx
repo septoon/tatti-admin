@@ -2,6 +2,7 @@ import React from 'react'
 import { getFile, putFile } from '../../lib/api'
 import SimpleItemsEditor from '../../components/SimpleItemsEditor'
 import Loader from '../../components/Loader/Loader'
+import { MainButton } from '@twa-dev/sdk/react'
 
 // Тип строки редактора: базовые поля + служебные
 type Row = {
@@ -119,9 +120,9 @@ export default function CakesPage() {
       <div className="flex items-center gap-2">
         <div className="font-semibold">Торты</div>
         <button onClick={addRow} className="ml-auto px-3 py-1.5 rounded border">+ Строка</button>
-        <button onClick={onSave} disabled={saving} className="px-3 py-1.5 rounded bg-black text-white disabled:opacity-50">{saving ? 'Сохранение...' : 'Сохранить'}</button>
-      </div>
+       </div>
       <SimpleItemsEditor rows={rows} setRows={setRows} onDeleteRow={deleteRow} enableImageUpload={true} />
+      <MainButton text={saving ? 'Сохранение...' : 'Сохранить'} onClick={onSave} disabled={saving} />
     </div>
   )
 }

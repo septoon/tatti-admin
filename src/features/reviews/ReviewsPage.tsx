@@ -1,6 +1,7 @@
 import React from 'react'
 import { getReviews, appendToArrayFile, putFile } from '../../lib/api'
 import Loader from '../../components/Loader/Loader'
+import WebApp from '@twa-dev/sdk'
 
 export default function ReviewsPage() {
   const [list, setList] = React.useState<any[]>([])
@@ -25,6 +26,7 @@ export default function ReviewsPage() {
 
   async function onAdd(e: React.FormEvent) {
     e.preventDefault()
+    WebApp.HapticFeedback.impactOccurred('medium');
     const created = await appendToArrayFile('reviews.json', form)
     setList(prev => [...prev, created])
     setForm({ name: '', reviewText: '', rating: 5, image: '' })
@@ -55,7 +57,7 @@ export default function ReviewsPage() {
         <textarea className="border rounded px-2 py-1 h-24" placeholder="Текст" value={form.reviewText} onChange={e=>setForm(v=>({...v, reviewText: e.target.value}))} />
         <input type="number" min={1} max={5} className="border rounded px-2 py-1" placeholder="Оценка 1-5" value={form.rating} onChange={e=>setForm(v=>({...v, rating: Number(e.target.value)}))} />
         <input className="border rounded px-2 py-1" placeholder="Ссылка на фото (опц.)" value={form.image} onChange={e=>setForm(v=>({...v, image: e.target.value}))} />
-        <button className="self-start mt-2 px-3 py-1.5 rounded bg-black text-white">Добавить</button>
+        <button className="self-start mt-2 px-3 py-1.5 w-full rounded-md bg-[#0C61FD] text-white">Добавить</button>
       </form>
 
       <div className="grid gap-3">
