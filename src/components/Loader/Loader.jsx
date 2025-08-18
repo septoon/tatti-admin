@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import './loader.css'
+import './Loader.css'
 import './ImageLoader.css'
 
 const Loader = ({imageLoader}) => {
