@@ -104,7 +104,7 @@ export default function MenuPage() {
   return (
     <div className="space-y-4">
       <input
-        className="rounded px-2 py-2 w-full"
+        className="rounded-md bg-silver dark:bg-darkCard shadow-lg px-2 py-2 w-full"
         type="search"
         placeholder="Поиск по названию"
         value={query}
@@ -256,7 +256,7 @@ export default function MenuPage() {
             <div className="pt-1">
               <button
                 onClick={() => confirm(it.id)}
-                className="w-full px-3 py-2 opacity-80 rounded-md bg-red text-white"
+                className="w-full px-3 py-2 rounded-md bg-red text-white"
                 title="Удалить блюдо">
                 Удалить блюдо
               </button>
