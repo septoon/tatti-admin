@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useTelegramInit } from './lib/tg'
 import { NavTabs } from './components/NavTabs'
 import MenuPage from './features/menu/MenuPage'
@@ -7,9 +7,21 @@ import CakesPage from './features/cakes/CakesPage'
 import EasterPage from './features/easter/EasterPage'
 import ServicePackagesPage from './features/servicePackages/ServicePackagesPage'
 import InfoPage from './features/info/InfoPage'
+import WebApp from '@twa-dev/sdk'
 
 export default function App() {
-  useTelegramInit()
+  useEffect(() => {
+      try {
+        if (!WebApp) {
+          console.error('Telegram WebApp API недоступен.');
+          return;
+        }
+        WebApp.ready();
+        WebApp.expand();
+      } catch (error) {
+        console.error('Ошибка при инициализации Telegram WebApp:', error);
+      }
+    }, []);
   const [tab, setTab] = React.useState('menu')
 
   return (
