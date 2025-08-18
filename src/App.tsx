@@ -29,7 +29,7 @@ export default function App() {
 
       <NavTabs value={tab} onChange={setTab} />
 
-      <div className='pt-20'>
+      <div className='pt-52'>
         {tab === 'menu' && <MenuPage />}
         {tab === 'reviews' && <ReviewsPage />}
         {tab === 'cakes' && <CakesPage />}
