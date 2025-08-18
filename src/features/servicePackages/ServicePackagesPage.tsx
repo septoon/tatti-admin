@@ -3,6 +3,7 @@ import { getFile, putFile } from '../../lib/api'
 import SimpleItemsEditor from '../../components/SimpleItemsEditor'
 import Loader from '../../components/Loader/Loader'
 import { MainButton } from '@twa-dev/sdk/react'
+import WebApp from '@twa-dev/sdk'
 
 // Унифицированная строка редактора (поддержим лишние поля, чтобы не потерять их при сохранении)
 type Row = {
@@ -114,11 +115,23 @@ export default function ServicePackagesPage() {
     })()
   }, [])
 
-  const addPkg = () => setPkgs(prev => [...prev, { name: '', price: 0, image: '', description: [] }])
-  const delPkg = (idx: number) => setPkgs(prev => prev.filter((_, i) => i !== idx))
+  const addPkg = () => {
+    WebApp.HapticFeedback.impactOccurred('heavy')
+    setPkgs(prev => [...prev, { name: '', price: 0, image: '', description: [] }])
+  }
+  const delPkg = (idx: number) => {
+    WebApp.HapticFeedback.impactOccurred('heavy')
+    setPkgs(prev => prev.filter((_, i) => i !== idx))
+  }
 
-  const addExtra = () => setExtras(prev => [...prev, { name: '', price: 0, image: '', description: [] }])
-  const delExtra = (idx: number) => setExtras(prev => prev.filter((_, i) => i !== idx))
+  const addExtra = () => {
+    WebApp.HapticFeedback.impactOccurred('heavy')
+    setExtras(prev => [...prev, { name: '', price: 0, image: '', description: [] }])
+  }
+  const delExtra = (idx: number) => {
+    WebApp.HapticFeedback.impactOccurred('heavy')
+    setExtras(prev => prev.filter((_, i) => i !== idx))
+  }
 
   async function onSave() {
     setSaving(true)

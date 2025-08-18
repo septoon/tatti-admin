@@ -37,6 +37,7 @@ export default function ReviewsPage() {
     const prev = list;
     const next = prev.filter((_, i) => i !== idx);
     setList(next);
+    WebApp.HapticFeedback.impactOccurred('heavy')
     try {
       await putFile('reviews.json', next);
     } catch (e: any) {

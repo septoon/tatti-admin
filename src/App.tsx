@@ -17,6 +17,7 @@ export default function App() {
         }
         WebApp.ready();
         WebApp.expand();
+        WebApp.requestFullscreen();
         WebApp.disableVerticalSwipes();
         WebApp.enableClosingConfirmation();
       } catch (error) {

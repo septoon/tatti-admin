@@ -3,6 +3,7 @@ import { getFile, putFile } from '../../lib/api'
 import SimpleItemsEditor from '../../components/SimpleItemsEditor'
 import Loader from '../../components/Loader/Loader'
 import { MainButton } from '@twa-dev/sdk/react'
+import WebApp from '@twa-dev/sdk'
 
 // Строка редактора для INFO (используем только image, остальные поля игнорируются при сохранении)
 type Row = {
@@ -46,7 +47,10 @@ export default function InfoPage() {
     })()
   }, [])
 
-  const addRow = () => setRows((prev) => [...prev, { image: '', name: '', price: 0, description: [] }])
+  const addRow = () => {
+    WebApp.HapticFeedback.impactOccurred('heavy')
+    setRows((prev) => [...prev, { image: '', name: '', price: 0, description: [] }])
+  }
   const deleteRow = (idx: number) => setRows((prev) => prev.filter((_, i) => i !== idx))
 
   async function onSave() {

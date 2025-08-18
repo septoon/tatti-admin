@@ -3,6 +3,7 @@ import { getFile, putFile } from '../../lib/api'
 import SimpleItemsEditor from '../../components/SimpleItemsEditor'
 import Loader from '../../components/Loader/Loader'
 import { MainButton } from '@twa-dev/sdk/react'
+import WebApp from '@twa-dev/sdk'
 
 // Тип строки редактора: базовые поля + служебные
 type Row = {
@@ -92,10 +93,13 @@ export default function CakesPage() {
     })()
   }, [])
 
-  const addRow = () => setRows(prev => [
-    ...prev,
-    { _key: `item_${prev.length + 1}`, name: '', price: 0, image: '', description: [] }
-  ])
+  const addRow = () => {
+    WebApp.HapticFeedback.impactOccurred('heavy')
+    setRows(prev => [
+      ...prev,
+      { _key: `item_${prev.length + 1}`, name: '', price: 0, image: '', description: [] }
+    ])
+  }
 
   const deleteRow = (idx: number) => setRows(prev => prev.filter((_, i) => i !== idx))
 

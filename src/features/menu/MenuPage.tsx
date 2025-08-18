@@ -56,6 +56,7 @@ export default function MenuPage() {
   const confirm = (id: string) => {
     const item = data?.items.find((i) => i.id === id);
     const name = item?.title && item.title.trim() !== '' ? item.title : 'новое блюдо';
+    WebApp.HapticFeedback.impactOccurred('heavy')
     WebApp.showConfirm(
       `Вы действительно хотите удалить ${name}? Это действие безвозвратно!`,
       (confirmed) => {
