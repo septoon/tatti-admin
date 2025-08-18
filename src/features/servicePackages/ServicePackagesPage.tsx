@@ -2,6 +2,7 @@ import React from 'react'
 import { getFile, putFile } from '../../lib/api'
 import SimpleItemsEditor from '../../components/SimpleItemsEditor'
 import Loader from '../../components/Loader/Loader'
+import { MainButton } from '@twa-dev/sdk/react'
 
 // Унифицированная строка редактора (поддержим лишние поля, чтобы не потерять их при сохранении)
 type Row = {
@@ -140,7 +141,6 @@ export default function ServicePackagesPage() {
       <div className="flex items-center gap-2">
         <div className="font-semibold">Пакеты услуг</div>
         <button onClick={addPkg} className="ml-auto px-3 py-1.5 rounded border">+ Пакет</button>
-        <button onClick={onSave} disabled={saving} className="px-3 py-1.5 rounded bg-black text-white disabled:opacity-50">{saving ? 'Сохранение...' : 'Сохранить всё'}</button>
       </div>
 
       <SimpleItemsEditor rows={pkgs} setRows={setPkgs} onDeleteRow={delPkg} enableImageUpload={true} />
@@ -148,10 +148,10 @@ export default function ServicePackagesPage() {
       <div className="flex items-center gap-2 pt-4">
         <div className="font-semibold">Дополнительно</div>
         <button onClick={addExtra} className="ml-auto px-3 py-1.5 rounded border">+ Услуга</button>
-        <button onClick={onSave} disabled={saving} className="px-3 py-1.5 rounded bg-black text-white disabled:opacity-50">{saving ? 'Сохранение...' : 'Сохранить всё'}</button>
       </div>
 
       <SimpleItemsEditor rows={extras} setRows={setExtras} onDeleteRow={delExtra} enableImageUpload={true} />
+      <MainButton text={saving ? 'Сохранение...' : 'Сохранить'} onClick={onSave} disabled={saving} />
     </div>
   )
 }
