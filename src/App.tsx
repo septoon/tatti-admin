@@ -25,7 +25,7 @@ export default function App() {
   const [tab, setTab] = React.useState('menu')
 
   return (
-    <div className="max-w-7xl mx-auto p-4 space-y-4">
+    <div className="max-w-7xl h-full mx-auto p-4 space-y-4">
 
       <NavTabs value={tab} onChange={setTab} />
 
