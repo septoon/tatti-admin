@@ -14,6 +14,16 @@ export default function MenuPage() {
   const [saving, setSaving] = React.useState(false)
 
   React.useEffect(() => {
+    const apply = () => {
+      const scheme = WebApp.colorScheme; // 'light' | 'dark'
+      document.documentElement.setAttribute('data-color-scheme', scheme);
+    };
+    apply();
+    WebApp.onEvent('themeChanged', apply);
+    return () => WebApp.offEvent('themeChanged', apply);
+  }, []);
+
+  React.useEffect(() => {
     ;(async () => {
       try {
         setLoading(true)

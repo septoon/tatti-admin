@@ -2,16 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background: #e9eff8;
-}
-
 :root {
+  /* светлая тема по умолчанию */
+  --bg: #e9eff8;
   color-scheme: light;
 }
-[data-color-scheme='dark'] {
+:root[data-color-scheme='dark'] {
+  /* тёмная тема */
+  --bg: #14181C;
   color-scheme: dark;
-  body {
-    background: #14181C;
-  }
+}
+body {
+  background: var(--bg);
 }
