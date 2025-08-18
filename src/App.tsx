@@ -12,31 +12,32 @@ import Loader from './components/Loader/Loader'
 export default function App() {
   const [loading, setLoading] = React.useState(true);
 
-  useEffect(() => {
-    const init = async () => {
-      try {
-        WebApp.ready();
-        WebApp.expand();
-        
-        await fetch('/ping'); 
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+useEffect(() => {
+  const timer = setTimeout(() => {
+    try {
+      if (!WebApp) {
+        console.error('Telegram WebApp API недоступен.');
+        return;
       }
-    };
-    init();
-  }, []);
+      WebApp.ready();
+      WebApp.expand();
+    } catch (error) {
+      console.error('Ошибка при инициализации Telegram WebApp:', error);
+    }
+  }, 500); // задержка в полсекунды
+
+  return () => clearTimeout(timer);
+}, []);
 
   const [tab, setTab] = React.useState('menu')
 
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-4">
+      <NavTabs value={tab} onChange={setTab} />
     {loading ? (
         <Loader />
       ) : (
         <>
-          <NavTabs value={tab} onChange={setTab} />
           <div className='pt-20'>
             {tab === 'menu' && <MenuPage />}
             {tab === 'reviews' && <ReviewsPage />}
