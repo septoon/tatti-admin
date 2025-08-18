@@ -1,0 +1,38 @@
+/* Plain CSS for the Loader SVG animations */
+.pl { display: block; margin: auto; }
+
+/* Ring stroke animation */
+.pl__ring { animation: ring 1.6s ease-in-out infinite; }
+@keyframes ring {
+  0%   { stroke-dashoffset: 20; }
+  50%  { stroke-dashoffset: 140; }
+  100% { stroke-dashoffset: 20; }
+}
+
+/* Small grease drops */
+.pl__drop { opacity: 0; }
+.pl__drop--1 { animation: drop 1.6s .1s ease-in-out infinite; }
+.pl__drop--2 { animation: drop 1.6s .3s ease-in-out infinite; }
+.pl__drop--3 { animation: drop 1.6s .5s ease-in-out infinite; }
+.pl__drop--4 { animation: drop 1.6s .7s ease-in-out infinite; }
+.pl__drop--5 { animation: drop 1.6s .9s ease-in-out infinite; }
+@keyframes drop {
+  0%   { transform: translateY(0) scale(1); opacity: 0; }
+  20%  { opacity: 1; }
+  60%  { transform: translateY(-10px) scale(1.1); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 0; }
+}
+
+/* Pan gentle tilt */
+.pl__pan { transform-origin: 44px 73px; animation: pan 1.6s ease-in-out infinite; }
+@keyframes pan {
+  0%,100% { transform: rotate(0deg); }
+  50%     { transform: rotate(-6deg); }
+}
+
+/* Shadow subtle pulse */
+.pl__shadow { animation: shadow 1.6s ease-in-out infinite; }
+@keyframes shadow {
+  0%,100% { transform: scaleX(1); opacity: .25; }
+  50%     { transform: scaleX(.9); opacity: .15; }
+}

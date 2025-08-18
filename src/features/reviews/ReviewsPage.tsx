@@ -1,0 +1,79 @@
+import React from 'react'
+import { getReviews, appendToArrayFile, putFile } from '../../lib/api'
+import Loader from '../../components/Loader/Loader'
+
+export default function ReviewsPage() {
+  const [list, setList] = React.useState<any[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
+
+  const [form, setForm] = React.useState({ name: '', reviewText: '', rating: 5, image: '' })
+
+  React.useEffect(() => {
+    ;(async () => {
+      try {
+        setLoading(true)
+        const data = await getReviews()
+        setList(data)
+      } catch (e:any) {
+        setError(e?.message || 'Ошибка')
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [])
+
+  async function onAdd(e: React.FormEvent) {
+    e.preventDefault()
+    const created = await appendToArrayFile('reviews.json', form)
+    setList(prev => [...prev, created])
+    setForm({ name: '', reviewText: '', rating: 5, image: '' })
+  }
+
+  async function onDelete(idx: number) {
+    // optimistic update
+    const prev = list
+    const next = prev.filter((_, i) => i !== idx)
+    setList(next)
+    try {
+      await putFile('reviews.json', next)
+    } catch (e: any) {
+      // rollback on error
+      setList(prev)
+      alert('Не удалось удалить: ' + (e?.message || 'unknown'))
+    }
+  }
+
+  if (loading) return <Loader />
+  if (error) return <div className="p-4 text-red-600">{error}</div>
+
+  return (
+    <div className="space-y-6">
+      <form onSubmit={onAdd} className="flex flex-col gap-2 p-3 border rounded">
+        <div className="font-semibold">Добавить отзыв</div>
+        <input className="border rounded px-2 py-1" placeholder="Имя" value={form.name} onChange={e=>setForm(v=>({...v, name: e.target.value}))} />
+        <textarea className="border rounded px-2 py-1 h-24" placeholder="Текст" value={form.reviewText} onChange={e=>setForm(v=>({...v, reviewText: e.target.value}))} />
+        <input type="number" min={1} max={5} className="border rounded px-2 py-1" placeholder="Оценка 1-5" value={form.rating} onChange={e=>setForm(v=>({...v, rating: Number(e.target.value)}))} />
+        <input className="border rounded px-2 py-1" placeholder="Ссылка на фото (опц.)" value={form.image} onChange={e=>setForm(v=>({...v, image: e.target.value}))} />
+        <button className="self-start mt-2 px-3 py-1.5 rounded bg-black text-white">Добавить</button>
+      </form>
+
+      <div className="grid gap-3">
+        {list.map((r, idx) => (
+          <div key={idx} className="border rounded p-3">
+            <div className="flex items-center gap-2">
+              <div className="font-semibold">{r.name} <span className="text-xs text-slate-500">({r.rating})</span></div>
+              <button
+                className="ml-auto text-red-600 border border-red-600 px-2 py-0.5 rounded hover:bg-red-600 hover:text-white transition"
+                onClick={() => onDelete(idx)}
+                title="Удалить отзыв"
+              >Удалить</button>
+            </div>
+            {r.image ? <img src={r.image} alt="" className="w-40 rounded mt-2" /> : null}
+            <div className="mt-2 text-sm whitespace-pre-wrap">{r.reviewText}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
