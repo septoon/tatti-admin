@@ -1,26 +1,31 @@
 import React from 'react'
 import WebApp from '@twa-dev/sdk'
+import { MdOutlineRateReview, MdOutlineRestaurantMenu } from 'react-icons/md';
+import { HiCake } from 'react-icons/hi';
+import { GiEasterEgg } from 'react-icons/gi';
+import { BsFillInfoCircleFill } from 'react-icons/bs';
+import { LuPackageOpen } from 'react-icons/lu';
 
-type Tab = { key: string; label: string }
+type Tab = { key: string; label: React.ReactNode }
 
 export function NavTabs({ value, onChange }: { value: string; onChange: (k: string) => void }) {
   const tabs: Tab[] = [
-    { key: 'menu', label: 'Фуршетное Меню' },
-    { key: 'reviews', label: 'Отзывы' },
-    { key: 'cakes', label: 'Торты' },
-    { key: 'easter', label: 'Пасха' },
-    { key: 'servicePackages', label: 'Пакеты услуг' },
-    { key: 'info', label: 'Инфо' },
+    { key: 'Фуршетное Меню', label: <MdOutlineRestaurantMenu /> },
+    { key: 'Отзывы', label: <MdOutlineRateReview/> },
+    { key: 'Торты', label: <HiCake /> },
+    { key: 'Пасха', label: <GiEasterEgg /> },
+    { key: 'Пакеты услуг', label: <LuPackageOpen /> },
+    { key: 'Инфо', label: <BsFillInfoCircleFill /> },
   ]
   return (
-    <div className="z-80 flex gap-2 flex-wrap fixed top-0 left-0 right-0 p-4 pb-0 bg-light/60 dark:bg-dark/60 backdrop-blur-md rounded-b-3xl">
+    <div className="z-80 flex flex-wrap bg-light dark:bg-dark backdrop-blur-md rounded-b-3xl">
       <div className='w-full h-full flex flex-col items-center'>
-        <h1 className='mt-12 mb-8 px-4 text-dark dark:text-light font-bold'>{WebApp.initDataUnsafe?.user?.first_name ?? 'tatti'}</h1>
-        <div className='w-full flex overflow-x-scroll pb-4'>
+        <h1 className='mt-12 mb-8 px-4 text-gray dark:text-light font-bold'>{value}</h1>
+        <div className='w-full flex flex-wrap justify-between pb-4'>
           {tabs.map(t => (
           <button
             key={t.key}
-            className={`px-3 py-1 mx-2 rounded-md shadow-lg whitespace-nowrap z-90 ${value===t.key ? 'bg-[#2EA1FF] text-white' : 'bg-white text-gray dark:bg-darkCard dark:text-light'}`}
+            className={`px-3 py-3 mx-1 mb-2 rounded-full shadow-lg whitespace-nowrap z-90 ${value===t.key ? 'bg-[#2EA1FF] text-white' : 'bg-white text-gray dark:bg-darkCard dark:text-light'}`}
             onClick={() => {
               WebApp.HapticFeedback.impactOccurred('heavy')
               onChange(t.key)

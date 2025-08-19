@@ -24,20 +24,20 @@ export default function App() {
         console.error('Ошибка при инициализации Telegram WebApp:', error);
       }
     }, []);
-  const [tab, setTab] = React.useState('menu')
+  const [tab, setTab] = React.useState('Фуршетное Меню')
 
   return (
     <div className="max-w-7xl h-full mx-auto p-4 space-y-4">
 
       <NavTabs value={tab} onChange={setTab} />
 
-      <div className='pt-40'>
-        {tab === 'menu' && <MenuPage />}
-        {tab === 'reviews' && <ReviewsPage />}
-        {tab === 'cakes' && <CakesPage />}
-        {tab === 'easter' && <EasterPage />}
-        {tab === 'servicePackages' && <ServicePackagesPage />}
-        {tab === 'info' && <InfoPage />}
+      <div className=''>
+        {tab === 'Фуршетное Меню' && <MenuPage />}
+        {tab === 'Отзывы' && <ReviewsPage />}
+        {tab === 'Торты' && <CakesPage />}
+        {tab === 'Пасха' && <EasterPage />}
+        {tab === 'Пакеты услуг' && <ServicePackagesPage />}
+        {tab === 'Инфо' && <InfoPage />}
       </div>
     </div>
   )

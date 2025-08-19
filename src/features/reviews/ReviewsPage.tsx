@@ -54,16 +54,16 @@ export default function ReviewsPage() {
     <div className="space-y-6">
       <form
         onSubmit={onAdd}
-        className="flex flex-col gap-2 p-3 rounded-md shadow-lg bg-silver dark:bg-darkCard">
+        className="flex flex-col gap-2 p-3 rounded-xl shadow-lg bg-white text-gray dark:bg-darkCard">
         <div className="font-semibold">Добавить отзыв</div>
         <input
-          className="rounded-md px-2 py-1"
+          className="rounded-md border border-gray-300 px-2 py-1"
           placeholder="Имя"
           value={form.name}
           onChange={(e) => setForm((v) => ({ ...v, name: e.target.value }))}
         />
         <textarea
-          className="rounded-md px-2 py-1 h-24"
+          className="rounded-md border border-gray-300 px-2 py-1 h-24"
           placeholder="Текст"
           value={form.reviewText}
           onChange={(e) => setForm((v) => ({ ...v, reviewText: e.target.value }))}
@@ -72,13 +72,13 @@ export default function ReviewsPage() {
           type="number"
           min={1}
           max={5}
-          className="rounded-md px-2 py-1"
+          className="rounded-md border border-gray-300 px-2 py-1"
           placeholder="Оценка 1-5"
           value={form.rating}
           onChange={(e) => setForm((v) => ({ ...v, rating: Number(e.target.value) }))}
         />
         <input
-          className="rounded-md px-2 py-1"
+          className="rounded-md border border-gray-300 px-2 py-1"
           placeholder="Ссылка на фото (опц.)"
           value={form.image}
           onChange={(e) => setForm((v) => ({ ...v, image: e.target.value }))}
@@ -90,13 +90,13 @@ export default function ReviewsPage() {
 
       <div className="grid gap-3">
         {list.map((r, idx) => (
-          <div key={idx} className="rounded-md p-3 shadow-lg bg-silver dark:bg-darkCard">
+          <div key={idx} className="rounded-xl p-3 shadow-lg bg-white text-gray dark:bg-darkCard">
             <div className="flex items-center gap-2">
               <div className="font-semibold">
                 {r.name} <span className="text-xs text-slate-500">({r.rating})</span>
               </div>
               <button
-                className="ml-auto bg-red text-white px-2 py-0.5 rounded-md"
+                className="ml-auto bg-red text-white px-2 py-0.5 opacity-70 rounded-md"
                 onClick={() => onDelete(idx)}
                 title="Удалить отзыв">
                 Удалить
