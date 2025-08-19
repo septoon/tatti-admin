@@ -54,16 +54,16 @@ export default function ReviewsPage() {
     <div className="space-y-6">
       <form
         onSubmit={onAdd}
-        className="flex flex-col gap-2 p-3 rounded-xl shadow-lg bg-white dark:bg-darkCard text-gray dark:text-ligth dark:bg-darkCard">
+        className="flex flex-col gap-2 p-3 rounded-xl shadow-lg bg-white dark:bg-darkCard text-gray dark:text-ligth">
         <div className="font-semibold">Добавить отзыв</div>
         <input
-          className="rounded-md border border-gray-300 px-2 py-1"
+          className="rounded-md border border-gray-300 dark:border-dark px-2 py-1"
           placeholder="Имя"
           value={form.name}
           onChange={(e) => setForm((v) => ({ ...v, name: e.target.value }))}
         />
         <textarea
-          className="rounded-md border border-gray-300 px-2 py-1 h-24"
+          className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 h-24"
           placeholder="Текст"
           value={form.reviewText}
           onChange={(e) => setForm((v) => ({ ...v, reviewText: e.target.value }))}
@@ -72,13 +72,13 @@ export default function ReviewsPage() {
           type="number"
           min={1}
           max={5}
-          className="rounded-md border border-gray-300 px-2 py-1"
+          className="rounded-md border border-gray-300 dark:border-dark px-2 py-1"
           placeholder="Оценка 1-5"
           value={form.rating}
           onChange={(e) => setForm((v) => ({ ...v, rating: Number(e.target.value) }))}
         />
         <input
-          className="rounded-md border border-gray-300 px-2 py-1"
+          className="rounded-md border border-gray-300 dark:border-dark px-2 py-1"
           placeholder="Ссылка на фото (опц.)"
           value={form.image}
           onChange={(e) => setForm((v) => ({ ...v, image: e.target.value }))}

@@ -150,12 +150,12 @@ export default function SimpleItemsEditor({
       {rows.map((row, i) => (
         <div
           key={i}
-          className="rounded-xl p-3 space-y-2 bg-white dark:bg-darkCard text-gray dark:text-ligth dark:bg-darkCard shadow-lg">
+          className="rounded-xl p-3 space-y-2 bg-white dark:bg-darkCard text-gray dark:text-ligth shadow-lg">
           {showName && (
             <div className="space-y-1">
               <div className="text-xs text-slate-500">Название</div>
               <input
-                className="rounded-md border border-gray-300 px-2 py-1 w-full"
+                className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full"
                 value={row.name ?? ''}
                 onChange={(e) => update(i, { name: e.target.value })}
               />
@@ -166,7 +166,7 @@ export default function SimpleItemsEditor({
               <div className="text-xs text-slate-500">Цена</div>
               <input
                 type="number"
-                className="rounded-md border border-gray-300 px-2 py-1 w-full"
+                className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full"
                 value={Number(row.price ?? 0)}
                 onChange={(e) => update(i, { price: Number(e.target.value) })}
               />
@@ -182,7 +182,7 @@ export default function SimpleItemsEditor({
             <div className="space-y-1">
               <div className="text-xs text-slate-500">Описание (по строкам)</div>
               <textarea
-                className="rounded-md border border-gray-300 px-2 py-1 w-full h-28"
+                className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full h-28"
                 value={(row.description ?? []).join('\n')}
                 onChange={(e) =>
                   update(i, { description: e.target.value.split('\n').filter(Boolean) })

@@ -112,12 +112,12 @@ export default function MenuPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Поиск по названию..."
-          className="w-full p-2 pl-10 bg-light dark:bg-dark border-b border-gray-500 focus:border-0"
+          className="w-full p-2 pl-10 bg-light dark:bg-dark border-b border-gray-500 dark:border-darkCard focus:border-0"
         />
       </div>
       <div className="flex items-center gap-2">
         <select
-          className="rounded-md border border-gray-300 w-full px-2 py-3"
+          className="rounded-md border border-gray-300 dark:border-dark w-full px-2 py-3"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}>
           <option value="all">Все категории</option>
@@ -127,9 +127,6 @@ export default function MenuPage() {
             </option>
           ))}
         </select>
-        {/* <button onClick={onSave} disabled={saving} className="ml-auto px-3 py-2 rounded-md bg-black text-white disabled:opacity-50">
-          {saving ? 'Сохранение...' : 'Сохранить'}
-        </button> */}
       </div>
 
       {/* Desktop table */}
@@ -207,11 +204,11 @@ export default function MenuPage() {
         {items.map((it) => (
           <div
             key={it.id}
-            className="shadow-lg rounded-xl bg-white dark:bg-darkCard text-gray dark:text-ligth dark:bg-darkCard p-3 mb-4 space-y-3">
+            className="shadow-lg rounded-xl bg-white text-gray dark:text-ligth dark:bg-darkCard p-3 mb-4 space-y-3">
             <div className="space-y-1">
               <div className="text-xs text-slate-500">Категория</div>
               <input
-                className="rounded-md border border-gray-300 px-2 py-1 w-full"
+                className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full"
                 value={getCatName(it.categoryId)}
                 onChange={(e) => renameCategory(it.categoryId, e.target.value)}
               />
@@ -220,7 +217,7 @@ export default function MenuPage() {
             <div className="space-y-1">
               <div className="text-xs text-slate-500">Название</div>
               <input
-                className="rounded-md border border-gray-300 px-2 py-1 w-full"
+                className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full"
                 value={it.title}
                 onChange={(e) => updateItem(it.id, { title: e.target.value })}
               />
@@ -231,7 +228,7 @@ export default function MenuPage() {
                 <div className="text-xs text-slate-500">Цена</div>
                 <input
                   type="number"
-                  className="rounded-md border border-gray-300 px-2 py-1 w-full"
+                  className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full"
                   value={it.price}
                   onChange={(e) => updateItem(it.id, { price: Number(e.target.value) })}
                 />
@@ -239,7 +236,7 @@ export default function MenuPage() {
               <div className="flex-1 space-y-1">
                 <div className="text-xs text-slate-500">Картинка (URL)</div>
                 <input
-                  className="rounded-md border border-gray-300 px-2 py-1 w-full"
+                  className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full"
                   value={it.images?.[0]?.url ?? ''}
                   onChange={(e) =>
                     updateItem(it.id, { images: [{ id: 'img-1', url: e.target.value }] })
@@ -251,7 +248,7 @@ export default function MenuPage() {
             <div className="space-y-1">
               <div className="text-xs text-slate-500">Описание (по строкам)</div>
               <textarea
-                className="rounded-md border border-gray-300 px-2 py-1 w-full h-28"
+                className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full h-28"
                 value={it.description.join('\n')}
                 onChange={(e) =>
                   updateItem(it.id, { description: e.target.value.split('\n').filter(Boolean) })
