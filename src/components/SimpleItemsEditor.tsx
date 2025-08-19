@@ -148,7 +148,9 @@ export default function SimpleItemsEditor({
   const Cards = (
     <div className="grid gap-3 md:hidden">
       {rows.map((row, i) => (
-        <div key={i} className="rounded-xl p-3 space-y-2 bg-white text-gray dark:bg-darkCard shadow-lg">
+        <div
+          key={i}
+          className="rounded-xl p-3 space-y-2 bg-white dark:bg-darkCard text-gray dark:text-ligth dark:bg-darkCard shadow-lg">
           {showName && (
             <div className="space-y-1">
               <div className="text-xs text-slate-500">Название</div>

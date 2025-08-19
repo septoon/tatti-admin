@@ -37,7 +37,7 @@ export default function ReviewsPage() {
     const prev = list;
     const next = prev.filter((_, i) => i !== idx);
     setList(next);
-    WebApp.HapticFeedback.impactOccurred('heavy')
+    WebApp.HapticFeedback.impactOccurred('heavy');
     try {
       await putFile('reviews.json', next);
     } catch (e: any) {
@@ -54,7 +54,7 @@ export default function ReviewsPage() {
     <div className="space-y-6">
       <form
         onSubmit={onAdd}
-        className="flex flex-col gap-2 p-3 rounded-xl shadow-lg bg-white text-gray dark:bg-darkCard">
+        className="flex flex-col gap-2 p-3 rounded-xl shadow-lg bg-white dark:bg-darkCard text-gray dark:text-ligth dark:bg-darkCard">
         <div className="font-semibold">Добавить отзыв</div>
         <input
           className="rounded-md border border-gray-300 px-2 py-1"
@@ -90,7 +90,9 @@ export default function ReviewsPage() {
 
       <div className="grid gap-3">
         {list.map((r, idx) => (
-          <div key={idx} className="rounded-xl p-3 shadow-lg bg-white text-gray dark:bg-darkCard">
+          <div
+            key={idx}
+            className="rounded-xl p-3 shadow-lg bg-white dark:bg-darkCard text-gray dark:text-ligth dark:bg-darkCard">
             <div className="flex items-center gap-2">
               <div className="font-semibold">
                 {r.name} <span className="text-xs text-slate-500">({r.rating})</span>

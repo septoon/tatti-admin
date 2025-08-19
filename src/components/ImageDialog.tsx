@@ -61,7 +61,7 @@ const ImageDialog: FC<ImageDialogProps> = ({ dialogVisible, setDialogVisible, on
           <Loader imageLoader="true" />
         </div>
       ) : (
-        <div className="flex flex-col items-center h-60 bg-white">
+        <div className="flex flex-col items-center h-60 bg-white dark:bg-darkCard">
           <label htmlFor="file" className="cursor-pointer">
             <span className="rounded-md w-40 py-3 px-2 text-white bg-orange-600">Выбрать фото</span>
           </label>

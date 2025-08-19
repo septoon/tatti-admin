@@ -57,7 +57,7 @@ export default function MenuPage() {
   const confirm = (id: string) => {
     const item = data?.items.find((i) => i.id === id);
     const name = item?.title && item.title.trim() !== '' ? item.title : 'новое блюдо';
-    WebApp.HapticFeedback.impactOccurred('heavy')
+    WebApp.HapticFeedback.impactOccurred('heavy');
     WebApp.showConfirm(
       `Вы действительно хотите удалить ${name}? Это действие безвозвратно!`,
       (confirmed) => {
@@ -106,15 +106,15 @@ export default function MenuPage() {
   return (
     <div className="space-y-4">
       <div className="relative w-full mb-6">
-          <IoSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-red-400 text-xl" />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Поиск по названию..."
-            className="w-full p-2 pl-10 bg-light dark:bg-dark border-b border-gray-500 focus:border-0"
-          />
-        </div>
+        <IoSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-red-400 text-xl" />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Поиск по названию..."
+          className="w-full p-2 pl-10 bg-light dark:bg-dark border-b border-gray-500 focus:border-0"
+        />
+      </div>
       <div className="flex items-center gap-2">
         <select
           className="rounded-md border border-gray-300 w-full px-2 py-3"
@@ -207,7 +207,7 @@ export default function MenuPage() {
         {items.map((it) => (
           <div
             key={it.id}
-            className="shadow-lg rounded-xl bg-white text-gray dark:bg-darkCard p-3 mb-4 space-y-3">
+            className="shadow-lg rounded-xl bg-white dark:bg-darkCard text-gray dark:text-ligth dark:bg-darkCard p-3 mb-4 space-y-3">
             <div className="space-y-1">
               <div className="text-xs text-slate-500">Категория</div>
               <input
