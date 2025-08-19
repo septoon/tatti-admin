@@ -28,6 +28,18 @@ export default function SimpleItemsEditor({
   showDescription = true,
   enableImageUpload = false,
 }: Props) {
+  const confirmDelete = (idx: number) => {
+    const item = rows[idx];
+    const name = item?.name && item.name.trim() !== '' ? item.name : 'новое блюдо';
+    WebApp.HapticFeedback.impactOccurred('heavy');
+    WebApp.showConfirm(
+      `Вы действительно хотите удалить ${name}? Это действие безвозвратно!`,
+      (confirmed) => {
+        if (confirmed) onDeleteRow?.(idx);
+      },
+    );
+  };
+
   const update = (i: number, patch: Partial<Item>) => {
     setRows((prev) => {
       const next = Array.isArray(prev) ? [...prev] : [];
@@ -132,7 +144,7 @@ export default function SimpleItemsEditor({
               )}
               <td className="p-2 text-right">
                 <button
-                  onClick={() => onDeleteRow?.(i)}
+                  onClick={() => confirmDelete(i)}
                   className="ml-auto bg-red text-white opacity-80 px-2 py-0.5 rounded-md z-0">
                   Удалить
                 </button>
@@ -192,7 +204,7 @@ export default function SimpleItemsEditor({
           )}
           <div className="pt-2 text-right">
             <button
-              onClick={() => onDeleteRow?.(i)}
+              onClick={() => confirmDelete(i)}
               className="ml-auto bg-red text-white  px-2 py-0.5 rounded-md">
               Удалить
             </button>

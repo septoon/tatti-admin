@@ -47,6 +47,18 @@ export default function ReviewsPage() {
     }
   }
 
+  const confirmDelete = (idx: number) => {
+    const review = list[idx];
+    const name = review?.name && review.name.trim() !== '' ? review.name : 'отзыв';
+    WebApp.HapticFeedback.impactOccurred('heavy');
+    WebApp.showConfirm(
+      `Вы действительно хотите удалить ${name}? Это действие безвозвратно!`,
+      (confirmed) => {
+        if (confirmed) onDelete(idx);
+      },
+    );
+  };
+
   if (loading) return <Loader />;
   if (error) return <div className="p-4 text-red-600">{error}</div>;
 
@@ -99,7 +111,7 @@ export default function ReviewsPage() {
               </div>
               <button
                 className="ml-auto bg-red text-white px-2 py-0.5 opacity-70 rounded-md"
-                onClick={() => onDelete(idx)}
+                onClick={() => confirmDelete(idx)}
                 title="Удалить отзыв">
                 Удалить
               </button>
