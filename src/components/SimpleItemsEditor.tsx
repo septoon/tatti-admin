@@ -1,5 +1,7 @@
 import React from 'react';
 
+const getWebApp = () => (typeof window !== 'undefined' ? (window as any)?.Telegram?.WebApp : undefined)
+
 export type Item = {
   name: string;
   price?: number;
@@ -29,15 +31,26 @@ export default function SimpleItemsEditor({
   enableImageUpload = false,
 }: Props) {
   const confirmDelete = (idx: number) => {
-    const item = rows[idx];
-    const name = item?.name && item.name.trim() !== '' ? item.name : 'новое блюдо';
-    WebApp.HapticFeedback.impactOccurred('heavy');
-    WebApp.showConfirm(
+    const item = rows[idx]
+    const name = item?.name && item.name.trim() !== '' ? item.name : 'новое блюдо'
+    const wa = getWebApp()
+
+    if (!wa) {
+      // Fallback для браузера вне Telegram
+      if (window.confirm(`Вы действительно хотите удалить ${name}? Это действие безвозвратно!`)) {
+        onDeleteRow?.(idx)
+      }
+      return
+    }
+
+    // Telegram WebApp UX
+    try { wa.HapticFeedback?.impactOccurred?.('heavy') } catch {}
+    wa.showConfirm(
       `Вы действительно хотите удалить ${name}? Это действие безвозвратно!`,
-      (confirmed) => {
-        if (confirmed) onDeleteRow?.(idx);
+      (confirmed: boolean) => {
+        if (confirmed) onDeleteRow?.(idx)
       },
-    );
+    )
   };
 
   const update = (i: number, patch: Partial<Item>) => {

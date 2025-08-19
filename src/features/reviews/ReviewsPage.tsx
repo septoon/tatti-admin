@@ -52,7 +52,7 @@ export default function ReviewsPage() {
     const name = review?.name && review.name.trim() !== '' ? review.name : 'отзыв';
     WebApp.HapticFeedback.impactOccurred('heavy');
     WebApp.showConfirm(
-      `Вы действительно хотите удалить ${name}? Это действие безвозвратно!`,
+      `Вы действительно хотите удалить отзыв ${name}? Это действие безвозвратно!`,
       (confirmed) => {
         if (confirmed) onDelete(idx);
       },
