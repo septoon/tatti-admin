@@ -1,7 +1,0 @@
-module.exports = {
-  extends: [
-    "react-app",
-    "react-app/jest",
-    "plugin:react-hooks/recommended"
-  ]
-}

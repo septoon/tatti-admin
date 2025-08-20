@@ -1,4 +1,3 @@
-/* eslint-disable */
 import React, { useEffect } from 'react'
 import { NavTabs } from './components/NavTabs'
 import MenuPage from './features/menu/MenuPage'
@@ -12,8 +11,6 @@ import { chatIds } from './common/access'
 // Safe getter to avoid TS error when Telegram is not available
 const getWebApp = (): any | undefined =>
   (typeof window !== 'undefined' ? (window as any)?.Telegram?.WebApp : undefined)
-
-const isLocalAllowed = process.env.REACT_APP_ALLOW_LOCAL === 'true'
 
 export default function App() {
   const WebApp = getWebApp()
@@ -34,19 +31,15 @@ export default function App() {
     } catch (error) {
       console.error('Ошибка при инициализации Telegram WebApp:', error)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const [tab, setTab] = React.useState<string>('Фуршетное Меню')
 
   // Доступ только если userId — число и есть в списке
-  const hasAccess = (typeof userId === 'number' && chatIds.includes(userId)) || (!WebApp && isLocalAllowed)
+  const hasAccess = typeof userId === 'number' && chatIds.includes(userId)
 
   return (
     <div className="max-w-7xl h-full mx-auto p-4 space-y-4">
-      {!WebApp && isLocalAllowed && (
-        <div className="text-xs text-white bg-emerald-600 rounded px-2 py-1 inline-block">DEV MODE: local access enabled</div>
-      )}
       {hasAccess ? (
         <>
           <NavTabs value={tab} onChange={setTab} />
