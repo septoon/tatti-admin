@@ -1,4 +1,5 @@
 import React from 'react';
+import axios from 'axios'
 
 const getWebApp = () => (typeof window !== 'undefined' ? (window as any)?.Telegram?.WebApp : undefined)
 
@@ -30,6 +31,9 @@ export default function SimpleItemsEditor({
   showDescription = true,
   enableImageUpload = false,
 }: Props) {
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const [uploadTarget, setUploadTarget] = React.useState<{ row: number; idx: number | null } | null>(null)
+
   const confirmDelete = (idx: number) => {
     const item = rows[idx]
     const name = item?.name && item.name.trim() !== '' ? item.name : 'новое блюдо'
@@ -61,14 +65,57 @@ export default function SimpleItemsEditor({
     });
   };
 
+  function triggerPick(rowIndex: number, imageIndex: number | null) {
+    setUploadTarget({ row: rowIndex, idx: imageIndex })
+    fileInputRef.current?.click()
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !uploadTarget) return
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+      const apiKey = process.env.REACT_APP_IMGBB_KEY
+      if (!apiKey) throw new Error('Не задан REACT_APP_IMGBB_KEY')
+      const imgbbUrl = `https://api.imgbb.com/1/upload?key=${apiKey}`
+      const resp = await axios.post(imgbbUrl, formData)
+      const url: string | undefined = resp?.data?.data?.url
+      if (!url) throw new Error('ImgBB вернул пустой URL')
+
+      const { row, idx } = uploadTarget
+      setRows(prev => {
+        const next = Array.isArray(prev) ? [...prev] : []
+        const cur = next[row] || { name: '', price: 0, image: '', description: [] }
+        if (Array.isArray(cur.image)) {
+          const arr = [...cur.image]
+          const pos = typeof idx === 'number' ? idx : 0
+          arr[pos] = url
+          next[row] = { ...cur, image: arr }
+        } else {
+          next[row] = { ...cur, image: url }
+        }
+        return next
+      })
+    } catch (err) {
+      console.error(err)
+      alert('Ошибка загрузки изображения')
+    } finally {
+      setUploadTarget(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   const renderImageInputs = (row: Item, i: number) => {
-    const makeButton = (key?: React.Key) =>
+    const makeButton = (imageIndex: number | null, key?: React.Key) =>
       enableImageUpload ? (
         <button
           key={`btn-${String(key ?? i)}`}
           type="button"
-          className="px-2 py-1 rounded-md cursor-not-allowed"
-          title="Загрузка отключена">
+          className="px-2 py-1 rounded-md border"
+          title="Загрузить изображение"
+          onClick={() => triggerPick(i, imageIndex)}
+        >
           📷
         </button>
       ) : null;
@@ -88,7 +135,7 @@ export default function SimpleItemsEditor({
                   update(i, { image: arr });
                 }}
               />
-              {makeButton(idx)}
+              {makeButton(idx, idx)}
             </div>
           ))}
         </>
@@ -103,7 +150,7 @@ export default function SimpleItemsEditor({
           value={typeof row.image === 'string' ? row.image : ''}
           onChange={(e) => update(i, { image: e.target.value })}
         />
-        {makeButton()}
+        {makeButton(null)}
       </div>
     );
   };
@@ -241,6 +288,13 @@ export default function SimpleItemsEditor({
     <>
       {Table}
       {Cards}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
     </>
   );
 }

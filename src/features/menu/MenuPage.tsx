@@ -5,6 +5,8 @@ import WebApp from '@twa-dev/sdk';
 import Loader from '../../components/Loader/Loader';
 import { MainButton } from '@twa-dev/sdk/react';
 import { IoSearch } from 'react-icons/io5';
+import axios from 'axios';
+import { HiOutlineCamera } from 'react-icons/hi';
 
 export default function MenuPage() {
   const [data, setData] = React.useState<NormalizedMenu | null>(null);
@@ -13,6 +15,9 @@ export default function MenuPage() {
   const [filter, setFilter] = React.useState<string>('all');
   const [query, setQuery] = React.useState<string>('');
   const [saving, setSaving] = React.useState(false);
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const [uploadingId, setUploadingId] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     const apply = () => {
@@ -52,6 +57,36 @@ export default function MenuPage() {
       ...data,
       items: data.items.filter((it) => it.id !== id),
     });
+  }
+
+  function triggerPickImage(id: string) {
+    setUploadingId(id)
+    fileInputRef.current?.click()
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !uploadingId) return
+    try {
+      // визуально покажем загрузку на выбранной карточке, переиспользуем saving
+      setSaving(true)
+      const formData = new FormData()
+      formData.append('image', file)
+      const apiKey = process.env.REACT_APP_IMGBB_KEY
+      if (!apiKey) throw new Error('Не задан REACT_APP_IMGBB_KEY')
+      const imgbbUrl = `https://api.imgbb.com/1/upload?key=${apiKey}`
+      const resp = await axios.post(imgbbUrl, formData)
+      const url: string | undefined = resp?.data?.data?.url
+      if (!url) throw new Error('ImgBB вернул пустой URL')
+      updateItem(uploadingId, { images: [{ id: 'img-1', url }] })
+    } catch (err: any) {
+      console.error(err)
+      alert('Ошибка загрузки изображения')
+    } finally {
+      setSaving(false)
+      setUploadingId(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   const confirm = (id: string) => {
@@ -177,13 +212,29 @@ export default function MenuPage() {
                   />
                 </td>
                 <td className="p-2">
-                  <input
-                    className="rounded-md px-2 py-1 w-full"
-                    value={it.images?.[0]?.url ?? ''}
-                    onChange={(e) =>
-                      updateItem(it.id, { images: [{ id: 'img-1', url: e.target.value }] })
-                    }
-                  />
+                  <div className="space-y-2">
+                    <input
+                      className="rounded-md px-2 py-1 w-full"
+                      value={it.images?.[0]?.url ?? ''}
+                      onChange={(e) =>
+                        updateItem(it.id, { images: [{ id: 'img-1', url: e.target.value }] })
+                      }
+                    />
+                    <div className="relative inline-block group">
+                      <img
+                        src={it.images?.[0]?.url ?? ''}
+                        alt={it.title}
+                        className="h-16 w-24 object-cover rounded cursor-pointer border"
+                        onClick={() => triggerPickImage(it.id)}
+                      />
+                      <div
+                        className="absolute inset-0 flex items-center justify-center rounded bg-black/30 opacity-0 group-hover:opacity-100 transition"
+                        onClick={() => triggerPickImage(it.id)}
+                      >
+                        <HiOutlineCamera className="text-white" />
+                      </div>
+                    </div>
+                  </div>
                 </td>
                 <td className="p-2">
                   <button
@@ -246,6 +297,24 @@ export default function MenuPage() {
             </div>
 
             <div className="space-y-1">
+              <div className="text-xs text-slate-500">Картинка (нажмите, чтобы загрузить)</div>
+              <div className="relative group">
+                <img
+                  src={it.images?.[0]?.url ?? ''}
+                  alt={it.title}
+                  className='max-h-28 w-full object-cover rounded-xl cursor-pointer'
+                  onClick={() => triggerPickImage(it.id)}
+                />
+                <div
+                  className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/30 opacity-0 group-hover:opacity-100 transition"
+                  onClick={() => triggerPickImage(it.id)}
+                >
+                  <HiOutlineCamera className="text-white text-2xl" />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1">
               <div className="text-xs text-slate-500">Описание (по строкам)</div>
               <textarea
                 className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full h-28"
@@ -270,6 +339,13 @@ export default function MenuPage() {
         text={saving ? 'Сохранение...' : 'Сохранить'}
         onClick={onSave}
         disabled={saving}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
       />
     </div>
   );
