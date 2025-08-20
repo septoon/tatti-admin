@@ -7,6 +7,7 @@ import EasterPage from './features/easter/EasterPage'
 import ServicePackagesPage from './features/servicePackages/ServicePackagesPage'
 import InfoPage from './features/info/InfoPage'
 import { chatIds } from './common/access'
+import Stop from './common/stop.png'
 
 // Safe getter to avoid TS error when Telegram is not available
 const getWebApp = (): any | undefined =>
@@ -54,8 +55,12 @@ export default function App() {
           </div>
         </>
       ) : (
-        <div className='flex w-full h-full justify-center items-center'>
-          <span>К сожалению, у вас нет доступа</span>
+        <div className='flex w-full h-full justify-center pt-48'>
+          <div className='flex flex-col items-center bg-white dark:bg-darkCard rounded-xl p-4 '>
+            <img src={Stop} alt="Stop" className='w-16 mb-4'/>
+            <h1 className='font-bold text-center dark:text-white'>К сожалению, у Вас нет доступа к этой админке</h1>
+            <span className='text-gray text-center'>Необходимо запросить доступ у администратора</span>
+          </div>
         </div>
       )}
     </div>
