@@ -22,7 +22,27 @@ function normalizeImageInput(value: any): ImageValue {
     return value.url.trim()
   }
   if (typeof value === 'string') {
-    return value.trim()
+    const trimmed = value.trim()
+    if (!trimmed) return ''
+
+    const firstChar = trimmed[0]
+    if (firstChar === '[' || firstChar === '{' || firstChar === '"') {
+      try {
+        const parsed = JSON.parse(trimmed)
+        return normalizeImageInput(parsed)
+      } catch {
+        // ignore JSON parse errors and fall back to best-effort string cleanup
+      }
+    }
+
+    if (
+      (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+      (trimmed.startsWith("'") && trimmed.endsWith("'"))
+    ) {
+      return trimmed.slice(1, -1).trim()
+    }
+
+    return trimmed
   }
   return ''
 }
