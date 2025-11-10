@@ -5,17 +5,49 @@ import Loader from '../../components/Loader/Loader'
 import { MainButton } from '@twa-dev/sdk/react'
 import WebApp from '@twa-dev/sdk'
 
+type ImageValue = Item['image']
+
+function normalizeImageInput(value: any): ImageValue {
+  if (Array.isArray(value)) {
+    const arr = value
+      .map((entry) => {
+        if (typeof entry === 'string') return entry.trim()
+        if (entry && typeof entry === 'object' && typeof entry.url === 'string') return entry.url.trim()
+        return ''
+      })
+      .filter(Boolean)
+    return arr
+  }
+  if (value && typeof value === 'object' && typeof value.url === 'string') {
+    return value.url.trim()
+  }
+  if (typeof value === 'string') {
+    return value.trim()
+  }
+  return ''
+}
+
+const hasImage = (value: ImageValue): boolean =>
+  Array.isArray(value) ? value.length > 0 : typeof value === 'string' && value.trim().length > 0
+
+const toImagesArray = (value: ImageValue): string[] => {
+  if (Array.isArray(value)) return value
+  return typeof value === 'string' && value.trim().length > 0 ? [value.trim()] : []
+}
+
 function newYearObjectToRows(obj: any): Item[] {
   if (!obj || typeof obj !== 'object') return []
   return Object.entries(obj).map(([key, v]: any) => {
     // price: если есть weights[], берём первую цену, иначе обычную price
     const priceFromWeights = Array.isArray(v?.weights) && v.weights.length > 0 ? Number(v.weights[0]?.price ?? 0) : undefined
+    const imageFromImages = normalizeImageInput(v?.images)
+    const normalizedImage = hasImage(imageFromImages) ? imageFromImages : normalizeImageInput(v?.image)
     return {
       _key: key,
       id: v?.id,
       name: v?.name ?? '',
       price: typeof v?.price === 'number' ? v.price : (priceFromWeights ?? Number(v?.price ?? 0)),
-      image: Array.isArray(v?.image) ? v.image : (typeof v?.image === 'string' ? v.image : ''),
+      image: normalizedImage,
       description: Array.isArray(v?.description) ? v.description : [],
     }
   })
@@ -28,12 +60,14 @@ function rowsToNewYearObject(rows: Item[]): Record<string, any> {
   const out: Record<string, any> = {}
   rows.forEach((r, idx) => {
     const key = (r._key && r._key.trim()) || slugify(r.name) || `item_${idx + 1}`
+    const normalizedImage = normalizeImageInput(r.image)
     out[key] = {
       id: typeof r.id === 'number' ? r.id : generateId(idx),
       name: r.name ?? '',
       price: typeof r.price === 'number' ? r.price : Number(r.price ?? 0),
       description: Array.isArray(r.description) ? r.description : [],
-      image: Array.isArray(r.image) ? r.image : (typeof r.image === 'string' ? r.image : ''),
+      image: normalizedImage,
+      images: toImagesArray(normalizedImage),
     }
   })
   return out

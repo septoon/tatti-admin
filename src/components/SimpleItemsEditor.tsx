@@ -1,5 +1,6 @@
 import React from 'react';
 import axios from 'axios'
+import { HiOutlineCamera } from 'react-icons/hi'
 
 const getWebApp = () => (typeof window !== 'undefined' ? (window as any)?.Telegram?.WebApp : undefined)
 
@@ -107,6 +108,31 @@ export default function SimpleItemsEditor({
   }
 
   const renderImageInputs = (row: Item, i: number) => {
+    const renderPreview = (url: string, imageIndex: number | null, key?: React.Key) => {
+      const clickable = enableImageUpload
+      if (!clickable && !url) return null
+      return (
+        <div
+          key={`preview-${String(key ?? imageIndex ?? i)}`}
+          className={`relative inline-flex h-24 w-32 overflow-hidden rounded border ${clickable ? 'cursor-pointer group' : ''}`}
+          onClick={clickable ? () => triggerPick(i, imageIndex) : undefined}
+        >
+          {url ? (
+            <img src={url} alt="preview" className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-slate-100 text-xs text-slate-400">
+              Нет изображения
+            </div>
+          )}
+          {clickable && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition group-hover:opacity-100">
+              <HiOutlineCamera className="text-white" />
+            </div>
+          )}
+        </div>
+      )
+    }
+
     const makeButton = (imageIndex: number | null, key?: React.Key) =>
       enableImageUpload ? (
         <button
@@ -125,17 +151,21 @@ export default function SimpleItemsEditor({
       return (
         <>
           {row.image.map((val, idx) => (
-            <div key={idx} className="flex items-center gap-2 mt-1 first:mt-0">
-              <input
-                className="rounded-md px-2 py-1 w-full"
-                value={val}
-                onChange={(e) => {
-                  const arr = Array.isArray(row.image) ? [...row.image] : [];
-                  arr[idx] = e.target.value;
-                  update(i, { image: arr });
-                }}
-              />
-              {makeButton(idx, idx)}
+            <div key={idx} className="space-y-2 mt-1 first:mt-0">
+              <div className="flex items-center gap-2">
+                <input
+                  className="rounded-md px-2 py-1 w-full"
+                  value={val}
+                  onChange={(e) => {
+                    const arr = Array.isArray(row.image) ? [...row.image] : [];
+                    arr[idx] = e.target.value;
+                    update(i, { image: arr });
+                  }}
+                />
+                {makeButton(idx, idx)}
+              </div>
+              {(enableImageUpload || (typeof val === 'string' && val.trim())) &&
+                renderPreview(typeof val === 'string' ? val : '', idx, idx)}
             </div>
           ))}
         </>
@@ -144,13 +174,18 @@ export default function SimpleItemsEditor({
 
     // Одна ссылка (строка)
     return (
-      <div className="flex items-center gap-2">
-        <input
-          className="rounded-md px-2 py-1 w-full"
-          value={typeof row.image === 'string' ? row.image : ''}
-          onChange={(e) => update(i, { image: e.target.value })}
-        />
-        {makeButton(null)}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <input
+            className="rounded-md px-2 py-1 w-full"
+            value={typeof row.image === 'string' ? row.image : ''}
+            onChange={(e) => update(i, { image: e.target.value })}
+          />
+          {makeButton(null)}
+        </div>
+        {(enableImageUpload ||
+          (typeof row.image === 'string' && row.image.trim().length > 0)) &&
+          renderPreview(typeof row.image === 'string' ? row.image : '', null)}
       </div>
     );
   };
