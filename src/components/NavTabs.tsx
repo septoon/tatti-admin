@@ -5,12 +5,14 @@ import { HiCake } from 'react-icons/hi';
 import { GiEasterEgg } from 'react-icons/gi';
 import { BsFillInfoCircleFill } from 'react-icons/bs';
 import { LuPackageOpen } from 'react-icons/lu';
+import { TbChristmasBall } from 'react-icons/tb';
 
 type Tab = { key: string; label: React.ReactNode };
 
 export function NavTabs({ value, onChange }: { value: string; onChange: (k: string) => void }) {
   const tabs: Tab[] = [
     { key: 'Фуршетное Меню', label: <MdOutlineRestaurantMenu /> },
+    { key: 'Новый Год', label: <TbChristmasBall /> },
     { key: 'Отзывы', label: <MdOutlineRateReview /> },
     { key: 'Торты', label: <HiCake /> },
     { key: 'Пасха', label: <GiEasterEgg /> },

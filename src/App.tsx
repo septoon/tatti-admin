@@ -8,6 +8,7 @@ import ServicePackagesPage from './features/servicePackages/ServicePackagesPage'
 import InfoPage from './features/info/InfoPage'
 import { chatIds } from './common/access'
 import Stop from './common/stop.png'
+import NewYearPage from './features/new-year/NewYearPage'
 
 // Safe getter to avoid TS error when Telegram is not available
 const getWebApp = (): any | undefined =>
@@ -47,6 +48,7 @@ export default function App() {
 
           <div>
             {tab === 'Фуршетное Меню' && <MenuPage />}
+            {tab === 'Новый Год' && <NewYearPage />}
             {tab === 'Отзывы' && <ReviewsPage />}
             {tab === 'Торты' && <CakesPage />}
             {tab === 'Пасха' && <EasterPage />}
