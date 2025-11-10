@@ -7,6 +7,26 @@ import WebApp from '@twa-dev/sdk'
 
 type ImageValue = Item['image']
 
+const stripMatchingQuotes = (input: string): string => {
+  if (input.length < 2) return input
+  const first = input[0]
+  const last = input[input.length - 1]
+  if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
+    return input.slice(1, -1).trim()
+  }
+  return input
+}
+
+const tryParseImageJson = (candidate: string): any | null => {
+  const startsLikeJson = candidate.startsWith('[') || candidate.startsWith('{') || candidate.startsWith('"')
+  if (!startsLikeJson) return null
+  try {
+    return JSON.parse(candidate)
+  } catch {
+    return null
+  }
+}
+
 function normalizeImageInput(value: any): ImageValue {
   if (Array.isArray(value)) {
     const arr = value
@@ -22,27 +42,21 @@ function normalizeImageInput(value: any): ImageValue {
     return value.url.trim()
   }
   if (typeof value === 'string') {
-    const trimmed = value.trim()
-    if (!trimmed) return ''
+    let candidate = value.trim()
+    if (!candidate) return ''
 
-    const firstChar = trimmed[0]
-    if (firstChar === '[' || firstChar === '{' || firstChar === '"') {
-      try {
-        const parsed = JSON.parse(trimmed)
+    // handle strings that were saved as JSON twice (e.g. "'[\"url\"]'")
+    for (let i = 0; i < 3; i += 1) {
+      const parsed = tryParseImageJson(candidate)
+      if (parsed !== null) {
         return normalizeImageInput(parsed)
-      } catch {
-        // ignore JSON parse errors and fall back to best-effort string cleanup
       }
+      const stripped = stripMatchingQuotes(candidate)
+      if (stripped === candidate) break
+      candidate = stripped
     }
 
-    if (
-      (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-      (trimmed.startsWith("'") && trimmed.endsWith("'"))
-    ) {
-      return trimmed.slice(1, -1).trim()
-    }
-
-    return trimmed
+    return candidate
   }
   return ''
 }
