@@ -255,7 +255,7 @@ export default function MenuPage() {
         {items.map((it) => (
           <div
             key={it.id}
-            className="shadow-lg rounded-xl bg-white text-gray dark:text-ligth dark:bg-darkCard p-3 mb-4 space-y-3">
+            className="shadow-lg rounded-xl bg-white text-gray dark:text-ligt dark:bg-darkCard p-3 mb-4 space-y-3">
             <div className="space-y-1">
               <div className="text-xs text-slate-500">Категория</div>
               <input

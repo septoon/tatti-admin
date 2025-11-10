@@ -22,7 +22,7 @@ export function NavTabs({ value, onChange }: { value: string; onChange: (k: stri
   return (
     <div className="z-80 flex flex-wrap bg-light dark:bg-dark backdrop-blur-md rounded-b-3xl">
       <div className="w-full h-full flex flex-col items-center">
-        <h1 className="mt-12 mb-8 px-4 text-gray dark:text-ligth dark:text-light font-bold">
+        <h1 className="mt-12 mb-8 px-4 text-gray dark:text-light dark:text-light font-bold">
           {value}
         </h1>
         <div className="w-full flex flex-wrap justify-between pb-4">
@@ -32,7 +32,7 @@ export function NavTabs({ value, onChange }: { value: string; onChange: (k: stri
               className={`px-3 py-3 mx-1 mb-2 rounded-full shadow-lg whitespace-nowrap z-90 ${
                 value === t.key
                   ? 'bg-[#2EA1FF] text-white'
-                  : 'bg-white dark:bg-darkCard text-gray dark:text-ligth dark:bg-darkCard dark:text-light'
+                  : 'bg-white dark:bg-darkCard text-gray dark:text-light dark:bg-darkCard dark:text-light'
               }`}
               onClick={() => {
                 WebApp.HapticFeedback.impactOccurred('heavy');

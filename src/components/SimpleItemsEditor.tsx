@@ -222,7 +222,7 @@ export default function SimpleItemsEditor({
       {rows.map((row, i) => (
         <div
           key={i}
-          className="rounded-xl p-3 space-y-2 bg-white dark:bg-darkCard text-gray dark:text-ligth shadow-lg">
+          className="rounded-xl p-3 space-y-2 bg-white dark:bg-darkCard text-gray dark:text-ligt shadow-lg">
           {showName && (
             <div className="space-y-1">
               <div className="text-xs text-slate-500">Название</div>
