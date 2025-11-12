@@ -8,6 +8,8 @@ import { getFile, putFile } from '../../lib/api'
 
 type ImageEntry = { id: string; url: string }
 
+type ImageField = 'image' | 'images'
+
 type NewYearItem = {
   key: string
   id: string
@@ -15,6 +17,7 @@ type NewYearItem = {
   price: number
   description: string[]
   images: ImageEntry[]
+  imageField: ImageField
 }
 
 function generateId(seed = 0): string {
@@ -65,6 +68,7 @@ function normalizeImageSource(value: any): string[] {
 function mapRawToItems(raw: any): NewYearItem[] {
   if (!raw || typeof raw !== 'object') return []
   return Object.entries(raw).map(([key, value]: [string, any], idx) => {
+    const imageField: ImageField = typeof value?.image === 'string' ? 'image' : 'images'
     const images = normalizeImageSource(value?.images ?? value?.image).map((url, imageIdx) => ({
       id: `img-${idx}-${imageIdx}`,
       url,
@@ -76,6 +80,7 @@ function mapRawToItems(raw: any): NewYearItem[] {
       price: typeof value?.price === 'number' ? value.price : Number(value?.price ?? 0),
       description: Array.isArray(value?.description) ? value.description : [],
       images,
+      imageField,
     }
   })
 }
@@ -84,12 +89,19 @@ function mapItemsToRaw(items: NewYearItem[]): Record<string, any> {
   const out: Record<string, any> = {}
   items.forEach((item, idx) => {
     const key = item.key?.trim() || slugify(item.title) || `item_${idx + 1}`
+    const urls = (item.images ?? []).filter((img) => img.url.trim()).map((img) => img.url.trim())
     out[key] = {
       id: Number(item.id) || Number(generateId(idx)),
       name: item.title ?? '',
       price: typeof item.price === 'number' ? item.price : Number(item.price ?? 0),
       description: Array.isArray(item.description) ? item.description : [],
-      images: (item.images ?? []).filter((img) => img.url.trim()).map((img) => img.url.trim()),
+    }
+
+    if (item.imageField === 'image') {
+      out[key].image = urls[0] ?? ''
+      if (urls.length > 1) out[key].images = urls
+    } else {
+      out[key].images = urls
     }
   })
   return out
@@ -137,6 +149,7 @@ export default function NewYearPage() {
         price: 0,
         description: [],
         images: [],
+        imageField: 'image',
       },
     ])
   }
