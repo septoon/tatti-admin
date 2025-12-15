@@ -267,31 +267,6 @@ export default function NewYearPage() {
                   />
                 </td>
                 <td className="p-2">
-                  <div className="space-y-2">
-                    <input
-                      className="rounded-md px-2 py-1 w-full"
-                      value={it.images?.[0]?.url ?? ''}
-                      onChange={(e) =>
-                        updateItem(it.id, { images: [{ id: 'img-1', url: e.target.value }] })
-                      }
-                    />
-                    <div className="relative inline-block group">
-                      <img
-                        src={it.images?.[0]?.url ?? ''}
-                        alt={it.title}
-                        className="h-16 w-24 object-cover rounded cursor-pointer border"
-                        onClick={() => triggerPickImage(it.id)}
-                      />
-                      <div
-                        className="absolute inset-0 flex items-center justify-center rounded bg-black/30 opacity-0 group-hover:opacity-100 transition"
-                        onClick={() => triggerPickImage(it.id)}
-                      >
-                        <HiOutlineCamera className="text-white" />
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td className="p-2">
                   <button
                     onClick={() => confirm(it.id)}
                     className="px-2 py-1 rounded border text-red-600 hover:bg-red-50"
