@@ -107,6 +107,8 @@ type UploadServerImageTarget = {
   targetFileName: string;
 };
 
+type UploadPathMode = 'absolute' | 'relative';
+
 function buildReplaceTarget(oldImageUrl: string): ReplaceServerImageTarget {
   if (!oldImageUrl || oldImageUrl.trim() === '') {
     throw new Error('У блюда не задан текущий URL изображения');
@@ -203,6 +205,15 @@ function ensureApiHostedImageUrl(url: string | null, fallbackUrl: string): strin
   return parsed.toString();
 }
 
+function toRelativePath(value: string): string {
+  return String(value || '').replace(/^\/+/, '');
+}
+
+function getPathByMode(value: string, mode: UploadPathMode): string {
+  if (mode === 'relative') return toRelativePath(value);
+  return value;
+}
+
 function buildUploadTarget(params: {
   oldImageUrl?: string;
   categoryHintUrl?: string;
@@ -263,25 +274,36 @@ export async function replaceServerImage(params: { oldImageUrl: string; webpFile
     directPutError = err;
   }
 
-  const formData = new FormData();
-  formData.append('image', params.webpFile, target.targetFileName);
-  formData.append('oldUrl', target.oldUrl);
-  formData.append('oldPath', target.oldPath);
-  formData.append('targetPath', target.targetPath);
-  formData.append('targetDir', target.targetDir);
-  formData.append('targetFileName', target.targetFileName);
+  const endpointErrors: string[] = [];
 
-  try {
-    const { data } = await api.post(imageReplaceEndpoint, formData);
-    const uploadedUrl = pickImageUrlFromResponse(data);
-    return ensureApiHostedImageUrl(uploadedUrl, target.targetUrl);
-  } catch (err) {
-    const putErr = getErrorText(directPutError);
-    const endpointErr = getErrorText(err);
-    throw new Error(
-      `Не удалось заменить изображение. PUT ${target.targetPath}: ${putErr}. POST ${imageReplaceEndpoint}: ${endpointErr}`,
-    );
+  for (const pathMode of ['absolute', 'relative'] as UploadPathMode[]) {
+    const formData = new FormData();
+    const oldPath = getPathByMode(target.oldPath, pathMode);
+    const targetPath = getPathByMode(target.targetPath, pathMode);
+    const targetDir = getPathByMode(target.targetDir, pathMode);
+
+    formData.append('image', params.webpFile, target.targetFileName);
+    formData.append('file', params.webpFile, target.targetFileName);
+    formData.append('oldUrl', target.oldUrl);
+    formData.append('oldPath', oldPath);
+    formData.append('targetPath', targetPath);
+    formData.append('targetDir', targetDir);
+    formData.append('targetFileName', target.targetFileName);
+    formData.append('fileName', target.targetFileName);
+
+    try {
+      const { data } = await api.post(imageReplaceEndpoint, formData);
+      const uploadedUrl = pickImageUrlFromResponse(data);
+      return ensureApiHostedImageUrl(uploadedUrl, target.targetUrl);
+    } catch (err) {
+      endpointErrors.push(`POST ${imageReplaceEndpoint} (${pathMode}): ${getErrorText(err)}`);
+    }
   }
+
+  const putErr = getErrorText(directPutError);
+  throw new Error(
+    `Не удалось заменить изображение. PUT ${target.targetPath}: ${putErr}. ${endpointErrors.join(' | ')}`,
+  );
 }
 
 export async function uploadMenuImage(params: {
@@ -316,30 +338,34 @@ export async function uploadMenuImage(params: {
 
   const endpoints = Array.from(
     new Set(
-      [imageUploadEndpoint, imageReplaceEndpoint, '/api/upload-image', '/api/upload'].filter(
+      [imageUploadEndpoint, imageReplaceEndpoint, '/api/upload-image', '/api/upload/menu-image', '/api/upload/review-image', '/api/upload'].filter(
         (v): v is string => typeof v === 'string' && v.trim().length > 0,
       ),
     ),
   );
 
   for (const endpoint of endpoints) {
-    try {
-      const formData = new FormData();
-      formData.append('image', params.webpFile, target.targetFileName);
-      formData.append('targetPath', target.targetPath);
-      formData.append('targetDir', target.targetDir);
-      formData.append('targetFileName', target.targetFileName);
-      if (params.oldImageUrl && params.oldImageUrl.trim()) {
-        const replaceTarget = buildReplaceTarget(params.oldImageUrl);
-        formData.append('oldUrl', replaceTarget.oldUrl);
-        formData.append('oldPath', replaceTarget.oldPath);
-      }
+    for (const pathMode of ['absolute', 'relative'] as UploadPathMode[]) {
+      try {
+        const formData = new FormData();
+        formData.append('image', params.webpFile, target.targetFileName);
+        formData.append('file', params.webpFile, target.targetFileName);
+        formData.append('targetPath', getPathByMode(target.targetPath, pathMode));
+        formData.append('targetDir', getPathByMode(target.targetDir, pathMode));
+        formData.append('targetFileName', target.targetFileName);
+        formData.append('fileName', target.targetFileName);
+        if (params.oldImageUrl && params.oldImageUrl.trim()) {
+          const replaceTarget = buildReplaceTarget(params.oldImageUrl);
+          formData.append('oldUrl', replaceTarget.oldUrl);
+          formData.append('oldPath', getPathByMode(replaceTarget.oldPath, pathMode));
+        }
 
-      const { data } = await api.post(endpoint, formData);
-      const uploadedUrl = pickImageUrlFromResponse(data);
-      return ensureApiHostedImageUrl(uploadedUrl, target.targetUrl);
-    } catch (err) {
-      errors.push(`post ${endpoint}: ${getErrorText(err)}`);
+        const { data } = await api.post(endpoint, formData);
+        const uploadedUrl = pickImageUrlFromResponse(data);
+        return ensureApiHostedImageUrl(uploadedUrl, target.targetUrl);
+      } catch (err) {
+        errors.push(`post ${endpoint} (${pathMode}): ${getErrorText(err)}`);
+      }
     }
   }
 
