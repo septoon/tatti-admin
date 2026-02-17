@@ -19,7 +19,6 @@ type NewItemDraft = {
   categoryId: string
   title: string
   price: string
-  imageUrl: string
   description: string
 }
 
@@ -28,7 +27,6 @@ function createEmptyDraft(categoryId: string): NewItemDraft {
     categoryId,
     title: '',
     price: '0',
-    imageUrl: '',
     description: '',
   }
 }
@@ -43,8 +41,12 @@ export default function MenuPage() {
   const [newItemCategoryId, setNewItemCategoryId] = React.useState<string>('');
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false)
   const [newItemDraft, setNewItemDraft] = React.useState<NewItemDraft>(createEmptyDraft(''))
+  const [newItemImageFile, setNewItemImageFile] = React.useState<File | null>(null)
+  const [newItemImagePreviewUrl, setNewItemImagePreviewUrl] = React.useState<string>('')
+  const [addingItem, setAddingItem] = React.useState(false)
 
   const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const addDialogFileInputRef = React.useRef<HTMLInputElement>(null)
   const [uploadingId, setUploadingId] = React.useState<string | null>(null)
 
   React.useEffect(() => {
@@ -80,6 +82,7 @@ export default function MenuPage() {
     if (!cats.length) {
       setNewItemCategoryId('')
       setNewItemDraft(createEmptyDraft(''))
+      setNewItemImageFile(null)
       return
     }
     setNewItemCategoryId((prev) => {
@@ -100,6 +103,16 @@ export default function MenuPage() {
       return { ...prev, categoryId: fallbackCategoryId }
     })
   }, [cats, isAddDialogOpen, newItemCategoryId])
+
+  React.useEffect(() => {
+    if (!newItemImageFile) {
+      setNewItemImagePreviewUrl('')
+      return
+    }
+    const nextPreviewUrl = URL.createObjectURL(newItemImageFile)
+    setNewItemImagePreviewUrl(nextPreviewUrl)
+    return () => URL.revokeObjectURL(nextPreviewUrl)
+  }, [newItemImageFile])
 
   const categoryPositions = React.useMemo(() => {
     const positions = new Map<string, { index: number; total: number }>()
@@ -170,50 +183,83 @@ export default function MenuPage() {
   function openAddDialog() {
     if (!newItemCategoryId) return
     setNewItemDraft(createEmptyDraft(newItemCategoryId))
+    setNewItemImageFile(null)
+    if (addDialogFileInputRef.current) addDialogFileInputRef.current.value = ''
     setIsAddDialogOpen(true)
   }
 
   function closeAddDialog() {
     setIsAddDialogOpen(false)
+    setNewItemImageFile(null)
+    if (addDialogFileInputRef.current) addDialogFileInputRef.current.value = ''
   }
 
-  function addItemFromDraft(draft: NewItemDraft) {
-    if (!data || !draft.categoryId) return
-    const externalId = getNextExternalId(data.items)
-    const sortOrder = getNextSortOrder(data.items, draft.categoryId)
-    const parsedPrice = Number(draft.price)
-    const price = Number.isFinite(parsedPrice) ? parsedPrice : 0
-    const imageUrl = draft.imageUrl.trim()
-    const description = draft.description
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-    const newItem: Item = {
-      id: `${draft.categoryId}-${externalId}-${Date.now()}`,
-      externalId,
-      title: draft.title.trim(),
-      description,
-      categoryId: draft.categoryId,
-      price,
-      images: imageUrl ? [{ id: `img-${draft.categoryId}-${externalId}`, url: imageUrl }] : [],
-      available: true,
-      featured: false,
-      sortOrder,
-      status: 'published',
+  function triggerPickAddItemImage() {
+    addDialogFileInputRef.current?.click()
+  }
+
+  function handleAddItemImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null
+    setNewItemImageFile(file)
+  }
+
+  async function addItemFromDraft(draft: NewItemDraft) {
+    if (!data || !draft.categoryId || addingItem) return
+    setAddingItem(true)
+    try {
+      const externalId = getNextExternalId(data.items)
+      const sortOrder = getNextSortOrder(data.items, draft.categoryId)
+      const parsedPrice = Number(draft.price)
+      const price = Number.isFinite(parsedPrice) ? parsedPrice : 0
+      const description = draft.description
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+
+      let images: Item['images'] = []
+      if (newItemImageFile) {
+        const webpFile = await convertImageToWebp(newItemImageFile)
+        const uploadedUrl = await uploadMenuImage({
+          webpFile,
+          categoryHintUrl: getCategoryHintUrl(draft.categoryId),
+          fileStem: `image-${String(externalId)}`,
+        })
+        images = [{ id: `img-${draft.categoryId}-${externalId}`, url: uploadedUrl }]
+      }
+
+      const newItem: Item = {
+        id: `${draft.categoryId}-${externalId}-${Date.now()}`,
+        externalId,
+        title: draft.title.trim(),
+        description,
+        categoryId: draft.categoryId,
+        price,
+        images,
+        available: true,
+        featured: false,
+        sortOrder,
+        status: 'published',
+      }
+      setData({
+        ...data,
+        items: [...data.items, newItem],
+      })
+      setFilter(draft.categoryId)
+      setQuery('')
+      setNewItemCategoryId(draft.categoryId)
+      closeAddDialog()
+    } catch (err: unknown) {
+      console.error(err)
+      const message = err instanceof Error ? err.message : 'Ошибка добавления товара'
+      alert(message)
+    } finally {
+      setAddingItem(false)
     }
-    setData({
-      ...data,
-      items: [...data.items, newItem],
-    })
-    setFilter(draft.categoryId)
-    setQuery('')
-    setNewItemCategoryId(draft.categoryId)
-    closeAddDialog()
   }
 
-  function onAddItemSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function onAddItemSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    addItemFromDraft(newItemDraft)
+    await addItemFromDraft(newItemDraft)
   }
 
   function moveItemWithinCategory(id: string, direction: -1 | 1) {
@@ -287,12 +333,12 @@ export default function MenuPage() {
     fileInputRef.current?.click()
   }
 
-  function getCategoryHintUrl(item: Item): string | undefined {
+  function getCategoryHintUrl(categoryId: string, excludeItemId?: string): string | undefined {
     if (!data) return undefined
     const sameCategory = data.items.find(
       (entry) =>
-        entry.id !== item.id &&
-        entry.categoryId === item.categoryId &&
+        entry.id !== excludeItemId &&
+        entry.categoryId === categoryId &&
         (entry.images?.[0]?.url ?? '').trim().length > 0,
     )
     if (sameCategory?.images?.[0]?.url) return sameCategory.images[0].url
@@ -316,7 +362,7 @@ export default function MenuPage() {
       const uploadedUrl = await uploadMenuImage({
         webpFile,
         oldImageUrl: oldImageUrl || undefined,
-        categoryHintUrl: getCategoryHintUrl(item),
+        categoryHintUrl: getCategoryHintUrl(item.categoryId, item.id),
         fileStem,
       })
       const imageId = item?.images?.[0]?.id ?? `img-${item.id}`
@@ -695,6 +741,7 @@ export default function MenuPage() {
                 type="button"
                 onClick={closeAddDialog}
                 className="rounded-md border border-slate-600 px-2 py-1 text-sm text-slate-200"
+                disabled={addingItem}
               >
                 Закрыть
               </button>
@@ -738,14 +785,48 @@ export default function MenuPage() {
                 />
               </div>
               <div className="space-y-1">
-                <div className="text-xs text-slate-300">Картинка (URL)</div>
+                <div className="text-xs text-slate-300">Картинка</div>
+                <button
+                  type="button"
+                  onClick={triggerPickAddItemImage}
+                  className="rounded-md border border-slate-600 px-3 py-2 w-full bg-[#1f2a37] text-left"
+                  disabled={addingItem}
+                >
+                  Выбрать с устройства
+                </button>
+                <div className="text-xs text-slate-400 truncate">
+                  {newItemImageFile ? newItemImageFile.name : 'Файл не выбран'}
+                </div>
                 <input
-                  className="rounded-md border border-slate-600 px-3 py-2 w-full bg-[#1f2a37]"
-                  value={newItemDraft.imageUrl}
-                  onChange={(e) => setNewItemDraft((prev) => ({ ...prev, imageUrl: e.target.value }))}
-                  placeholder="https://..."
+                  ref={addDialogFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAddItemImageChange}
                 />
               </div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-xs text-slate-300">Превью</div>
+              <button
+                type="button"
+                className="relative group w-full max-w-xs aspect-square overflow-hidden rounded-xl border border-slate-600 bg-[#1f2a37]"
+                onClick={triggerPickAddItemImage}
+                disabled={addingItem}
+              >
+                {newItemImagePreviewUrl ? (
+                  <img
+                    src={newItemImagePreviewUrl}
+                    alt="preview"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full flex flex-col items-center justify-center gap-2 text-slate-400 border-2 border-dashed border-slate-600 rounded-xl">
+                    <HiOutlineCamera className="text-3xl" />
+                    <span className="text-sm">Нажмите, чтобы выбрать фото</span>
+                  </div>
+                )}
+              </button>
             </div>
             <div className="space-y-1">
               <div className="text-xs text-slate-300">Описание (по строкам)</div>
@@ -760,11 +841,16 @@ export default function MenuPage() {
                 type="button"
                 onClick={closeAddDialog}
                 className="px-3 py-2 rounded-md border border-slate-600 text-slate-200"
+                disabled={addingItem}
               >
                 Отмена
               </button>
-              <button type="submit" className="px-3 py-2 rounded-md bg-mainBtn text-white">
-                Добавить
+              <button
+                type="submit"
+                className="px-3 py-2 rounded-md bg-mainBtn text-white disabled:opacity-50"
+                disabled={addingItem}
+              >
+                {addingItem ? 'Добавление...' : 'Добавить'}
               </button>
             </div>
           </form>
