@@ -1,12 +1,12 @@
 import React from 'react';
-import { getMenu, saveMenu } from '../../lib/api';
+import { getMenu, replaceServerImage, saveMenu } from '../../lib/api';
 import type { NormalizedMenu, Item } from '../../lib/types';
 import WebApp from '@twa-dev/sdk';
 import Loader from '../../components/Loader/Loader';
 import { MainButton } from '@twa-dev/sdk/react';
 import { IoSearch } from 'react-icons/io5';
-import axios from 'axios';
 import { HiOutlineCamera } from 'react-icons/hi';
+import { convertImageToWebp } from '../../lib/imageToWebp';
 
 export default function MenuPage() {
   const [data, setData] = React.useState<NormalizedMenu | null>(null);
@@ -66,22 +66,24 @@ export default function MenuPage() {
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (!file || !uploadingId) return
+    const currentUploadingId = uploadingId
+    if (!file || !currentUploadingId) return
     try {
-      // визуально покажем загрузку на выбранной карточке, переиспользуем saving
       setSaving(true)
-      const formData = new FormData()
-      formData.append('image', file)
-      const apiKey = process.env.REACT_APP_IMGBB_KEY
-      if (!apiKey) throw new Error('Не задан REACT_APP_IMGBB_KEY')
-      const imgbbUrl = `https://api.imgbb.com/1/upload?key=${apiKey}`
-      const resp = await axios.post(imgbbUrl, formData)
-      const url: string | undefined = resp?.data?.data?.url
-      if (!url) throw new Error('ImgBB вернул пустой URL')
-      updateItem(uploadingId, { images: [{ id: 'img-1', url }] })
-    } catch (err: any) {
+      const item = data?.items.find((it) => it.id === currentUploadingId)
+      const oldImageUrl = item?.images?.[0]?.url?.trim() ?? ''
+      if (!oldImageUrl) {
+        throw new Error('У блюда нет старого URL изображения для замены')
+      }
+
+      const webpFile = await convertImageToWebp(file)
+      const uploadedUrl = await replaceServerImage({ oldImageUrl, webpFile })
+      const imageId = item?.images?.[0]?.id ?? 'img-1'
+      updateItem(currentUploadingId, { images: [{ id: imageId, url: uploadedUrl }] })
+    } catch (err: unknown) {
       console.error(err)
-      alert('Ошибка загрузки изображения')
+      const message = err instanceof Error ? err.message : 'Ошибка загрузки изображения'
+      alert(message)
     } finally {
       setSaving(false)
       setUploadingId(null)
@@ -298,15 +300,15 @@ export default function MenuPage() {
 
             <div className="space-y-1">
               <div className="text-xs text-slate-500">Картинка (нажмите, чтобы загрузить)</div>
-              <div className="relative group">
+              <div className="relative group w-full aspect-square overflow-hidden rounded-xl">
                 <img
                   src={it.images?.[0]?.url ?? ''}
                   alt={it.title}
-                  className='max-h-28 w-full object-cover rounded-xl cursor-pointer'
+                  className='h-full w-full object-cover cursor-pointer'
                   onClick={() => triggerPickImage(it.id)}
                 />
                 <div
-                  className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/30 opacity-0 group-hover:opacity-100 transition"
+                  className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition"
                   onClick={() => triggerPickImage(it.id)}
                 >
                   <HiOutlineCamera className="text-white text-2xl" />
