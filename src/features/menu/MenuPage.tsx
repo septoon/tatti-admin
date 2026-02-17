@@ -15,6 +15,24 @@ function compareItems(a: Item, b: Item) {
   return a.id.localeCompare(b.id)
 }
 
+type NewItemDraft = {
+  categoryId: string
+  title: string
+  price: string
+  imageUrl: string
+  description: string
+}
+
+function createEmptyDraft(categoryId: string): NewItemDraft {
+  return {
+    categoryId,
+    title: '',
+    price: '0',
+    imageUrl: '',
+    description: '',
+  }
+}
+
 export default function MenuPage() {
   const [data, setData] = React.useState<NormalizedMenu | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -23,6 +41,8 @@ export default function MenuPage() {
   const [query, setQuery] = React.useState<string>('');
   const [saving, setSaving] = React.useState(false);
   const [newItemCategoryId, setNewItemCategoryId] = React.useState<string>('');
+  const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false)
+  const [newItemDraft, setNewItemDraft] = React.useState<NewItemDraft>(createEmptyDraft(''))
 
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const [uploadingId, setUploadingId] = React.useState<string | null>(null)
@@ -59,6 +79,7 @@ export default function MenuPage() {
   React.useEffect(() => {
     if (!cats.length) {
       setNewItemCategoryId('')
+      setNewItemDraft(createEmptyDraft(''))
       return
     }
     setNewItemCategoryId((prev) => {
@@ -70,6 +91,15 @@ export default function MenuPage() {
   React.useEffect(() => {
     if (filter !== 'all') setNewItemCategoryId(filter)
   }, [filter])
+
+  React.useEffect(() => {
+    if (!isAddDialogOpen) return
+    setNewItemDraft((prev) => {
+      if (prev.categoryId && cats.some((cat) => cat.id === prev.categoryId)) return prev
+      const fallbackCategoryId = newItemCategoryId || cats[0]?.id || ''
+      return { ...prev, categoryId: fallbackCategoryId }
+    })
+  }, [cats, isAddDialogOpen, newItemCategoryId])
 
   const categoryPositions = React.useMemo(() => {
     const positions = new Map<string, { index: number; total: number }>()
@@ -137,18 +167,35 @@ export default function MenuPage() {
     });
   }
 
-  function addItemToCategory(categoryId: string) {
-    if (!data || !categoryId) return
+  function openAddDialog() {
+    if (!newItemCategoryId) return
+    setNewItemDraft(createEmptyDraft(newItemCategoryId))
+    setIsAddDialogOpen(true)
+  }
+
+  function closeAddDialog() {
+    setIsAddDialogOpen(false)
+  }
+
+  function addItemFromDraft(draft: NewItemDraft) {
+    if (!data || !draft.categoryId) return
     const externalId = getNextExternalId(data.items)
-    const sortOrder = getNextSortOrder(data.items, categoryId)
+    const sortOrder = getNextSortOrder(data.items, draft.categoryId)
+    const parsedPrice = Number(draft.price)
+    const price = Number.isFinite(parsedPrice) ? parsedPrice : 0
+    const imageUrl = draft.imageUrl.trim()
+    const description = draft.description
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
     const newItem: Item = {
-      id: `${categoryId}-${externalId}-${Date.now()}`,
+      id: `${draft.categoryId}-${externalId}-${Date.now()}`,
       externalId,
-      title: '',
-      description: [],
-      categoryId,
-      price: 0,
-      images: [],
+      title: draft.title.trim(),
+      description,
+      categoryId: draft.categoryId,
+      price,
+      images: imageUrl ? [{ id: `img-${draft.categoryId}-${externalId}`, url: imageUrl }] : [],
       available: true,
       featured: false,
       sortOrder,
@@ -158,8 +205,15 @@ export default function MenuPage() {
       ...data,
       items: [...data.items, newItem],
     })
-    setFilter(categoryId)
+    setFilter(draft.categoryId)
     setQuery('')
+    setNewItemCategoryId(draft.categoryId)
+    closeAddDialog()
+  }
+
+  function onAddItemSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    addItemFromDraft(newItemDraft)
   }
 
   function moveItemWithinCategory(id: string, direction: -1 | 1) {
@@ -346,21 +400,10 @@ export default function MenuPage() {
           ))}
         </select>
       </div>
-      <div className="flex items-center gap-2">
-        <select
-          className="rounded-md border border-gray-300 dark:border-dark px-2 py-2 w-full"
-          value={newItemCategoryId}
-          onChange={(e) => setNewItemCategoryId(e.target.value)}
-        >
-          {cats.map((c) => (
-            <option key={`new-item-${c.id}`} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+      <div className="flex items-center justify-end">
         <button
-          className="px-3 py-2 rounded-md bg-mainBtn text-white whitespace-nowrap"
-          onClick={() => addItemToCategory(newItemCategoryId)}
+          className="px-3 py-2 rounded-md bg-mainBtn text-white whitespace-nowrap disabled:opacity-50"
+          onClick={openAddDialog}
           disabled={!newItemCategoryId}
         >
           + Товар
@@ -640,6 +683,93 @@ export default function MenuPage() {
           )
         })}
       </div>
+      {isAddDialogOpen && (
+        <div className="fixed inset-0 z-50 bg-black/55 backdrop-blur-[1px] p-3 flex items-end md:items-center md:justify-center">
+          <form
+            className="w-full md:max-w-2xl rounded-2xl border border-slate-700 bg-[#0f1720] text-white p-4 space-y-4 shadow-2xl"
+            onSubmit={onAddItemSubmit}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Новый товар</h3>
+              <button
+                type="button"
+                onClick={closeAddDialog}
+                className="rounded-md border border-slate-600 px-2 py-1 text-sm text-slate-200"
+              >
+                Закрыть
+              </button>
+            </div>
+            <div className="space-y-1">
+              <div className="text-xs text-slate-300">Категория</div>
+              <select
+                className="rounded-md border border-slate-600 px-3 py-2 w-full bg-[#1f2a37]"
+                value={newItemDraft.categoryId}
+                onChange={(e) => setNewItemDraft((prev) => ({ ...prev, categoryId: e.target.value }))}
+                required
+              >
+                {cats.map((c) => (
+                  <option key={`modal-new-item-${c.id}`} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <div className="text-xs text-slate-300">Название</div>
+              <input
+                className="rounded-md border border-slate-600 px-3 py-2 w-full bg-[#1f2a37]"
+                value={newItemDraft.title}
+                onChange={(e) => setNewItemDraft((prev) => ({ ...prev, title: e.target.value }))}
+                placeholder="Введите название"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <div className="text-xs text-slate-300">Цена</div>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  className="rounded-md border border-slate-600 px-3 py-2 w-full bg-[#1f2a37]"
+                  value={newItemDraft.price}
+                  onChange={(e) => setNewItemDraft((prev) => ({ ...prev, price: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <div className="text-xs text-slate-300">Картинка (URL)</div>
+                <input
+                  className="rounded-md border border-slate-600 px-3 py-2 w-full bg-[#1f2a37]"
+                  value={newItemDraft.imageUrl}
+                  onChange={(e) => setNewItemDraft((prev) => ({ ...prev, imageUrl: e.target.value }))}
+                  placeholder="https://..."
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-xs text-slate-300">Описание (по строкам)</div>
+              <textarea
+                className="rounded-md border border-slate-600 px-3 py-2 w-full bg-[#1f2a37] h-24"
+                value={newItemDraft.description}
+                onChange={(e) => setNewItemDraft((prev) => ({ ...prev, description: e.target.value }))}
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={closeAddDialog}
+                className="px-3 py-2 rounded-md border border-slate-600 text-slate-200"
+              >
+                Отмена
+              </button>
+              <button type="submit" className="px-3 py-2 rounded-md bg-mainBtn text-white">
+                Добавить
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
       <MainButton
         text={saving ? 'Сохранение...' : 'Сохранить'}
         onClick={onSave}

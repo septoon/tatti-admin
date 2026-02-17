@@ -189,6 +189,20 @@ function getApiOrigin(): string {
   return '';
 }
 
+function ensureApiHostedImageUrl(url: string | null, fallbackUrl: string): string {
+  if (!url || url.trim() === '') return fallbackUrl;
+
+  const apiOrigin = getApiOrigin();
+  const baseForRelative = apiOrigin || fallbackUrl;
+  const parsed = new URL(url, baseForRelative);
+
+  if (apiOrigin && parsed.origin !== apiOrigin) {
+    throw new Error(`Сервер вернул URL на другом хосте: ${parsed.origin}. Ожидался ${apiOrigin}`);
+  }
+
+  return parsed.toString();
+}
+
 function buildUploadTarget(params: {
   oldImageUrl?: string;
   categoryHintUrl?: string;
@@ -233,22 +247,6 @@ function buildUploadTarget(params: {
   };
 }
 
-async function uploadToImgbb(file: File | Blob, fileName: string): Promise<string> {
-  const apiKey =
-    (process.env.REACT_APP_IMGBB_KEY as string) ||
-    (typeof window !== 'undefined' ? (window as any).__IMGBB_KEY__ : '');
-  if (!apiKey) throw new Error('Не задан REACT_APP_IMGBB_KEY');
-
-  const formData = new FormData();
-  formData.append('image', file, fileName);
-
-  const imgbbUrl = `https://api.imgbb.com/1/upload?key=${apiKey}`;
-  const resp = await axios.post(imgbbUrl, formData);
-  const url: string | undefined = resp?.data?.data?.url;
-  if (!url) throw new Error('ImgBB вернул пустой URL');
-  return url;
-}
-
 export async function replaceServerImage(params: { oldImageUrl: string; webpFile: File | Blob }) {
   const target = buildReplaceTarget(params.oldImageUrl);
 
@@ -276,7 +274,7 @@ export async function replaceServerImage(params: { oldImageUrl: string; webpFile
   try {
     const { data } = await api.post(imageReplaceEndpoint, formData);
     const uploadedUrl = pickImageUrlFromResponse(data);
-    return uploadedUrl ?? target.targetUrl;
+    return ensureApiHostedImageUrl(uploadedUrl, target.targetUrl);
   } catch (err) {
     const putErr = getErrorText(directPutError);
     const endpointErr = getErrorText(err);
@@ -339,17 +337,11 @@ export async function uploadMenuImage(params: {
 
       const { data } = await api.post(endpoint, formData);
       const uploadedUrl = pickImageUrlFromResponse(data);
-      return uploadedUrl ?? target.targetUrl;
+      return ensureApiHostedImageUrl(uploadedUrl, target.targetUrl);
     } catch (err) {
       errors.push(`post ${endpoint}: ${getErrorText(err)}`);
     }
   }
 
-  try {
-    return await uploadToImgbb(params.webpFile, target.targetFileName);
-  } catch (err) {
-    errors.push(`imgbb: ${getErrorText(err)}`);
-  }
-
-  throw new Error(`Не удалось загрузить изображение: ${errors.join(' | ')}`);
+  throw new Error(`Не удалось загрузить изображение на REACT_APP_API_BASE: ${errors.join(' | ')}`);
 }
