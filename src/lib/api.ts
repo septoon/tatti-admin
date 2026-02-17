@@ -18,7 +18,10 @@ if (!envBase) {
 const baseURL = envBase?.replace(/\/$/, ''); // без завершающего '/'
 export const api = axios.create({ baseURL: baseURL || undefined });
 
-const imageReplaceEndpoint = (process.env.REACT_APP_IMAGE_REPLACE_ENDPOINT as string) || '/api/images/replace';
+const imageReplaceEndpoint =
+  (process.env.REACT_APP_IMAGE_REPLACE_ENDPOINT as string) || '/api/images/replace';
+const imageUploadEndpoint =
+  (process.env.REACT_APP_IMAGE_UPLOAD_ENDPOINT as string) || '/api/images/upload';
 
 // Добавляем заголовок только если мы реально внутри Telegram и initData есть
 api.interceptors.request.use((config) => {
@@ -97,6 +100,13 @@ type ReplaceServerImageTarget = {
   targetFileName: string;
 };
 
+type UploadServerImageTarget = {
+  targetPath: string;
+  targetUrl: string;
+  targetDir: string;
+  targetFileName: string;
+};
+
 function buildReplaceTarget(oldImageUrl: string): ReplaceServerImageTarget {
   if (!oldImageUrl || oldImageUrl.trim() === '') {
     throw new Error('У блюда не задан текущий URL изображения');
@@ -160,6 +170,85 @@ function getErrorText(error: unknown): string {
   return 'unknown';
 }
 
+function sanitizeFileStem(value: string): string {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\-_]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+}
+
+function getApiOrigin(): string {
+  if (baseURL) {
+    try {
+      return new URL(baseURL).origin;
+    } catch {}
+  }
+  if (typeof window !== 'undefined') return window.location.origin;
+  return '';
+}
+
+function buildUploadTarget(params: {
+  oldImageUrl?: string;
+  categoryHintUrl?: string;
+  fileStem?: string;
+}): UploadServerImageTarget {
+  if (params.oldImageUrl && params.oldImageUrl.trim()) {
+    const fromOld = buildReplaceTarget(params.oldImageUrl);
+    return {
+      targetPath: fromOld.targetPath,
+      targetUrl: fromOld.targetUrl,
+      targetDir: fromOld.targetDir,
+      targetFileName: fromOld.targetFileName,
+    };
+  }
+
+  const apiOrigin = getApiOrigin();
+  const hintUrl = params.categoryHintUrl?.trim();
+  let targetDir = '/images/menu/gastro/';
+  let origin = apiOrigin;
+
+  if (hintUrl) {
+    try {
+      const parsed = new URL(hintUrl, apiOrigin || 'http://localhost');
+      if (!apiOrigin || parsed.origin === apiOrigin) {
+        origin = parsed.origin;
+        const lastSlash = parsed.pathname.lastIndexOf('/');
+        targetDir = lastSlash >= 0 ? parsed.pathname.slice(0, lastSlash + 1) : '/';
+      }
+    } catch {}
+  }
+
+  const stem = sanitizeFileStem(params.fileStem || '') || `image-${Date.now()}`;
+  const targetFileName = `${stem}.webp`;
+  const targetPath = `${targetDir}${targetFileName}`.replace(/\/{2,}/g, '/');
+  const targetUrl = `${origin}${targetPath}`;
+
+  return {
+    targetPath,
+    targetUrl,
+    targetDir,
+    targetFileName,
+  };
+}
+
+async function uploadToImgbb(file: File | Blob, fileName: string): Promise<string> {
+  const apiKey =
+    (process.env.REACT_APP_IMGBB_KEY as string) ||
+    (typeof window !== 'undefined' ? (window as any).__IMGBB_KEY__ : '');
+  if (!apiKey) throw new Error('Не задан REACT_APP_IMGBB_KEY');
+
+  const formData = new FormData();
+  formData.append('image', file, fileName);
+
+  const imgbbUrl = `https://api.imgbb.com/1/upload?key=${apiKey}`;
+  const resp = await axios.post(imgbbUrl, formData);
+  const url: string | undefined = resp?.data?.data?.url;
+  if (!url) throw new Error('ImgBB вернул пустой URL');
+  return url;
+}
+
 export async function replaceServerImage(params: { oldImageUrl: string; webpFile: File | Blob }) {
   const target = buildReplaceTarget(params.oldImageUrl);
 
@@ -195,4 +284,72 @@ export async function replaceServerImage(params: { oldImageUrl: string; webpFile
       `Не удалось заменить изображение. PUT ${target.targetPath}: ${putErr}. POST ${imageReplaceEndpoint}: ${endpointErr}`,
     );
   }
+}
+
+export async function uploadMenuImage(params: {
+  webpFile: File | Blob;
+  oldImageUrl?: string;
+  categoryHintUrl?: string;
+  fileStem?: string;
+}) {
+  const errors: string[] = [];
+  const target = buildUploadTarget({
+    oldImageUrl: params.oldImageUrl,
+    categoryHintUrl: params.categoryHintUrl,
+    fileStem: params.fileStem,
+  });
+
+  if (params.oldImageUrl && params.oldImageUrl.trim()) {
+    try {
+      return await replaceServerImage({ oldImageUrl: params.oldImageUrl, webpFile: params.webpFile });
+    } catch (err) {
+      errors.push(`replace: ${getErrorText(err)}`);
+    }
+  }
+
+  try {
+    await api.put(target.targetPath, params.webpFile, {
+      headers: { 'Content-Type': 'image/webp' },
+    });
+    return target.targetUrl;
+  } catch (err) {
+    errors.push(`put ${target.targetPath}: ${getErrorText(err)}`);
+  }
+
+  const endpoints = Array.from(
+    new Set(
+      [imageUploadEndpoint, imageReplaceEndpoint, '/api/upload-image', '/api/upload'].filter(
+        (v): v is string => typeof v === 'string' && v.trim().length > 0,
+      ),
+    ),
+  );
+
+  for (const endpoint of endpoints) {
+    try {
+      const formData = new FormData();
+      formData.append('image', params.webpFile, target.targetFileName);
+      formData.append('targetPath', target.targetPath);
+      formData.append('targetDir', target.targetDir);
+      formData.append('targetFileName', target.targetFileName);
+      if (params.oldImageUrl && params.oldImageUrl.trim()) {
+        const replaceTarget = buildReplaceTarget(params.oldImageUrl);
+        formData.append('oldUrl', replaceTarget.oldUrl);
+        formData.append('oldPath', replaceTarget.oldPath);
+      }
+
+      const { data } = await api.post(endpoint, formData);
+      const uploadedUrl = pickImageUrlFromResponse(data);
+      return uploadedUrl ?? target.targetUrl;
+    } catch (err) {
+      errors.push(`post ${endpoint}: ${getErrorText(err)}`);
+    }
+  }
+
+  try {
+    return await uploadToImgbb(params.webpFile, target.targetFileName);
+  } catch (err) {
+    errors.push(`imgbb: ${getErrorText(err)}`);
+  }
+
+  throw new Error(`Не удалось загрузить изображение: ${errors.join(' | ')}`);
 }

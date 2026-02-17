@@ -1,5 +1,5 @@
 import React from 'react';
-import { getMenu, replaceServerImage, saveMenu } from '../../lib/api';
+import { getMenu, saveMenu, uploadMenuImage } from '../../lib/api';
 import type { NormalizedMenu, Item } from '../../lib/types';
 import WebApp from '@twa-dev/sdk';
 import Loader from '../../components/Loader/Loader';
@@ -8,6 +8,13 @@ import { IoSearch } from 'react-icons/io5';
 import { HiOutlineCamera } from 'react-icons/hi';
 import { convertImageToWebp } from '../../lib/imageToWebp';
 
+function compareItems(a: Item, b: Item) {
+  const sa = Number(a.sortOrder ?? 0)
+  const sb = Number(b.sortOrder ?? 0)
+  if (sa !== sb) return sa - sb
+  return a.id.localeCompare(b.id)
+}
+
 export default function MenuPage() {
   const [data, setData] = React.useState<NormalizedMenu | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -15,6 +22,7 @@ export default function MenuPage() {
   const [filter, setFilter] = React.useState<string>('all');
   const [query, setQuery] = React.useState<string>('');
   const [saving, setSaving] = React.useState(false);
+  const [newItemCategoryId, setNewItemCategoryId] = React.useState<string>('');
 
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const [uploadingId, setUploadingId] = React.useState<string | null>(null)
@@ -43,6 +51,76 @@ export default function MenuPage() {
     })();
   }, []);
 
+  const cats = React.useMemo(
+    () => (data ? [...data.categories].sort((a, b) => a.sortOrder - b.sortOrder) : []),
+    [data],
+  )
+
+  React.useEffect(() => {
+    if (!cats.length) {
+      setNewItemCategoryId('')
+      return
+    }
+    setNewItemCategoryId((prev) => {
+      if (prev && cats.some((cat) => cat.id === prev)) return prev
+      return cats[0].id
+    })
+  }, [cats])
+
+  React.useEffect(() => {
+    if (filter !== 'all') setNewItemCategoryId(filter)
+  }, [filter])
+
+  const categoryPositions = React.useMemo(() => {
+    const positions = new Map<string, { index: number; total: number }>()
+    if (!data) return positions
+
+    const grouped = new Map<string, Item[]>()
+    for (const item of data.items) {
+      if (!grouped.has(item.categoryId)) grouped.set(item.categoryId, [])
+      grouped.get(item.categoryId)!.push(item)
+    }
+    for (const entries of grouped.values()) {
+      const ordered = [...entries].sort(compareItems)
+      ordered.forEach((item, index) => {
+        positions.set(item.id, { index, total: ordered.length })
+      })
+    }
+    return positions
+  }, [data])
+
+  function getCatName(id: string) {
+    const f = cats.find((c) => c.id === id);
+    return f ? f.name : '';
+  }
+
+  function getNextExternalId(items: Item[]): number {
+    let maxExternalId = 0
+    for (const item of items) {
+      const value = Number(item.externalId)
+      if (Number.isFinite(value)) maxExternalId = Math.max(maxExternalId, value)
+    }
+    return maxExternalId + 1
+  }
+
+  function getNextSortOrder(items: Item[], categoryId: string): number {
+    let maxSortOrder = 0
+    for (const item of items) {
+      if (item.categoryId !== categoryId) continue
+      const value = Number(item.sortOrder ?? 0)
+      if (Number.isFinite(value)) maxSortOrder = Math.max(maxSortOrder, value)
+    }
+    return maxSortOrder + 1
+  }
+
+  function normalizeCategorySortOrder(items: Item[], categoryId: string): Item[] {
+    const ordered = items.filter((item) => item.categoryId === categoryId).sort(compareItems)
+    const nextSortMap = new Map(ordered.map((item, index) => [item.id, index + 1]))
+    return items.map((item) =>
+      item.categoryId === categoryId ? { ...item, sortOrder: nextSortMap.get(item.id) ?? 0 } : item,
+    )
+  }
+
   function updateItem(id: string, patch: Partial<Item>) {
     if (!data) return;
     setData({
@@ -59,26 +137,135 @@ export default function MenuPage() {
     });
   }
 
+  function addItemToCategory(categoryId: string) {
+    if (!data || !categoryId) return
+    const externalId = getNextExternalId(data.items)
+    const sortOrder = getNextSortOrder(data.items, categoryId)
+    const newItem: Item = {
+      id: `${categoryId}-${externalId}-${Date.now()}`,
+      externalId,
+      title: '',
+      description: [],
+      categoryId,
+      price: 0,
+      images: [],
+      available: true,
+      featured: false,
+      sortOrder,
+      status: 'published',
+    }
+    setData({
+      ...data,
+      items: [...data.items, newItem],
+    })
+    setFilter(categoryId)
+    setQuery('')
+  }
+
+  function moveItemWithinCategory(id: string, direction: -1 | 1) {
+    if (!data) return
+    const current = data.items.find((item) => item.id === id)
+    if (!current) return
+
+    const inCategory = data.items.filter((item) => item.categoryId === current.categoryId).sort(compareItems)
+    const index = inCategory.findIndex((item) => item.id === id)
+    if (index < 0) return
+    const targetIndex = index + direction
+    if (targetIndex < 0 || targetIndex >= inCategory.length) return
+
+    const reordered = [...inCategory]
+    const [moved] = reordered.splice(index, 1)
+    reordered.splice(targetIndex, 0, moved)
+    const nextSortMap = new Map(reordered.map((item, itemIndex) => [item.id, itemIndex + 1]))
+
+    setData({
+      ...data,
+      items: data.items.map((item) =>
+        item.categoryId === current.categoryId
+          ? { ...item, sortOrder: nextSortMap.get(item.id) ?? item.sortOrder }
+          : item,
+      ),
+    })
+  }
+
+  function moveItemToCategory(id: string, targetCategoryId: string) {
+    if (!data || !targetCategoryId) return
+    const current = data.items.find((item) => item.id === id)
+    if (!current || current.categoryId === targetCategoryId) return
+
+    const hasIdConflict =
+      typeof current.externalId === 'number' &&
+      data.items.some(
+        (item) =>
+          item.id !== id &&
+          item.categoryId === targetCategoryId &&
+          typeof item.externalId === 'number' &&
+          item.externalId === current.externalId,
+      )
+
+    const nextExternalId = hasIdConflict ? getNextExternalId(data.items) : current.externalId
+    const targetSortOrder = getNextSortOrder(
+      data.items.filter((item) => item.id !== id),
+      targetCategoryId,
+    )
+
+    let nextItems = data.items.map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            categoryId: targetCategoryId,
+            sortOrder: targetSortOrder,
+            externalId: nextExternalId,
+          }
+        : item,
+    )
+    nextItems = normalizeCategorySortOrder(nextItems, current.categoryId)
+    nextItems = normalizeCategorySortOrder(nextItems, targetCategoryId)
+
+    setData({
+      ...data,
+      items: nextItems,
+    })
+  }
+
   function triggerPickImage(id: string) {
     setUploadingId(id)
     fileInputRef.current?.click()
   }
 
+  function getCategoryHintUrl(item: Item): string | undefined {
+    if (!data) return undefined
+    const sameCategory = data.items.find(
+      (entry) =>
+        entry.id !== item.id &&
+        entry.categoryId === item.categoryId &&
+        (entry.images?.[0]?.url ?? '').trim().length > 0,
+    )
+    if (sameCategory?.images?.[0]?.url) return sameCategory.images[0].url
+
+    const anyCategory = data.items.find((entry) => (entry.images?.[0]?.url ?? '').trim().length > 0)
+    return anyCategory?.images?.[0]?.url
+  }
+
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     const currentUploadingId = uploadingId
-    if (!file || !currentUploadingId) return
+    if (!file || !currentUploadingId || !data) return
     try {
       setSaving(true)
-      const item = data?.items.find((it) => it.id === currentUploadingId)
-      const oldImageUrl = item?.images?.[0]?.url?.trim() ?? ''
-      if (!oldImageUrl) {
-        throw new Error('У блюда нет старого URL изображения для замены')
-      }
+      const item = data.items.find((it) => it.id === currentUploadingId)
+      if (!item) throw new Error('Не найден товар для загрузки')
 
+      const oldImageUrl = item?.images?.[0]?.url?.trim() ?? ''
       const webpFile = await convertImageToWebp(file)
-      const uploadedUrl = await replaceServerImage({ oldImageUrl, webpFile })
-      const imageId = item?.images?.[0]?.id ?? 'img-1'
+      const fileStem = `image-${String(item.externalId ?? item.sortOrder ?? item.id)}`
+      const uploadedUrl = await uploadMenuImage({
+        webpFile,
+        oldImageUrl: oldImageUrl || undefined,
+        categoryHintUrl: getCategoryHintUrl(item),
+        fileStem,
+      })
+      const imageId = item?.images?.[0]?.id ?? `img-${item.id}`
       updateItem(currentUploadingId, { images: [{ id: imageId, url: uploadedUrl }] })
     } catch (err: unknown) {
       console.error(err)
@@ -120,17 +307,11 @@ export default function MenuPage() {
   if (error) return <div className="p-4 text-red-600">{error}</div>;
   if (!data) return null;
 
-  const cats = data.categories.sort((a, b) => a.sortOrder - b.sortOrder);
   const q = query.trim().toLowerCase();
   const items = data.items
     .filter((it) => (filter === 'all' ? true : it.categoryId === filter))
     .filter((it) => (q === '' ? true : it.title?.toLowerCase().includes(q)))
-    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-
-  function getCatName(id: string) {
-    const f = cats.find((c) => c.id === id);
-    return f ? f.name : '';
-  }
+    .sort(compareItems);
 
   function renameCategory(catId: string, newName: string) {
     if (!data) return;
@@ -165,6 +346,26 @@ export default function MenuPage() {
           ))}
         </select>
       </div>
+      <div className="flex items-center gap-2">
+        <select
+          className="rounded-md border border-gray-300 dark:border-dark px-2 py-2 w-full"
+          value={newItemCategoryId}
+          onChange={(e) => setNewItemCategoryId(e.target.value)}
+        >
+          {cats.map((c) => (
+            <option key={`new-item-${c.id}`} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+        <button
+          className="px-3 py-2 rounded-md bg-mainBtn text-white whitespace-nowrap"
+          onClick={() => addItemToCategory(newItemCategoryId)}
+          disabled={!newItemCategoryId}
+        >
+          + Товар
+        </button>
+      </div>
 
       {/* Desktop table */}
       <div className="overflow-auto rounded-md hidden md:block">
@@ -176,11 +377,17 @@ export default function MenuPage() {
               <th className="text-left p-2 w-24">Цена</th>
               <th className="text-left p-2">Описание (по строкам)</th>
               <th className="text-left p-2 w-64">Картинка</th>
-              <th className="text-left p-2 w-32">Действия</th>
+              <th className="text-left p-2 w-72">Действия</th>
             </tr>
           </thead>
           <tbody>
-            {items.map((it) => (
+            {items.map((it) => {
+              const position = categoryPositions.get(it.id)
+              const canMoveUp = (position?.index ?? 0) > 0
+              const canMoveDown = (position?.index ?? 0) < (position?.total ?? 1) - 1
+              const imageUrl = it.images?.[0]?.url ?? ''
+
+              return (
               <tr key={it.id} className="border-t">
                 <td className="p-2">
                   <input
@@ -217,44 +424,97 @@ export default function MenuPage() {
                   <div className="space-y-2">
                     <input
                       className="rounded-md px-2 py-1 w-full"
-                      value={it.images?.[0]?.url ?? ''}
+                      value={imageUrl}
                       onChange={(e) =>
-                        updateItem(it.id, { images: [{ id: 'img-1', url: e.target.value }] })
+                        updateItem(it.id, {
+                          images: [{ id: it.images?.[0]?.id ?? `img-${it.id}`, url: e.target.value }],
+                        })
                       }
                     />
-                    <div className="relative inline-block group">
-                      <img
-                        src={it.images?.[0]?.url ?? ''}
-                        alt={it.title}
-                        className="h-16 w-24 object-cover rounded cursor-pointer border"
-                        onClick={() => triggerPickImage(it.id)}
-                      />
-                      <div
-                        className="absolute inset-0 flex items-center justify-center rounded bg-black/30 opacity-0 group-hover:opacity-100 transition"
-                        onClick={() => triggerPickImage(it.id)}
-                      >
-                        <HiOutlineCamera className="text-white" />
+                    {imageUrl ? (
+                      <div className="relative inline-block group">
+                        <img
+                          src={imageUrl}
+                          alt={it.title}
+                          className="h-16 w-24 object-cover rounded cursor-pointer border"
+                          onClick={() => triggerPickImage(it.id)}
+                        />
+                        <div
+                          className="absolute inset-0 flex items-center justify-center rounded bg-black/30 opacity-0 group-hover:opacity-100 transition"
+                          onClick={() => triggerPickImage(it.id)}
+                        >
+                          <HiOutlineCamera className="text-white" />
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => triggerPickImage(it.id)}
+                        className="h-16 w-24 rounded border-2 border-dashed border-gray-300 text-xs text-slate-500 flex flex-col items-center justify-center gap-1"
+                      >
+                        <HiOutlineCamera className="text-base" />
+                        Загрузить
+                      </button>
+                    )}
                   </div>
                 </td>
                 <td className="p-2">
-                  <button
-                    onClick={() => confirm(it.id)}
-                    className="px-2 py-1 rounded border text-red-600 hover:bg-red-50"
-                    title="Удалить блюдо">
-                    Удалить
-                  </button>
+                  <div className="space-y-2">
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => moveItemWithinCategory(it.id, -1)}
+                        disabled={!canMoveUp}
+                        className="px-2 py-1 rounded border disabled:opacity-40"
+                        title="Поднять выше"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        onClick={() => moveItemWithinCategory(it.id, 1)}
+                        disabled={!canMoveDown}
+                        className="px-2 py-1 rounded border disabled:opacity-40"
+                        title="Опустить ниже"
+                      >
+                        ↓
+                      </button>
+                    </div>
+                    <select
+                      className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full"
+                      value={it.categoryId}
+                      onChange={(e) => moveItemToCategory(it.id, e.target.value)}
+                    >
+                      {cats.map((cat) => (
+                        <option key={`move-${it.id}-${cat.id}`} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => confirm(it.id)}
+                      className="px-2 py-1 rounded border text-red-600 hover:bg-red-50 w-full"
+                      title="Удалить блюдо"
+                    >
+                      Удалить
+                    </button>
+                  </div>
                 </td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>
 
       {/* Mobile cards */}
       <div className="grid gap-3 md:hidden">
-        {items.map((it) => (
+        {items.map((it) => {
+          const position = categoryPositions.get(it.id)
+          const canMoveUp = (position?.index ?? 0) > 0
+          const canMoveDown = (position?.index ?? 0) < (position?.total ?? 1) - 1
+          const imageUrl = it.images?.[0]?.url ?? ''
+          const imageId = it.images?.[0]?.id ?? `img-${it.id}`
+
+          return (
           <div
             key={it.id}
             className="shadow-lg rounded-xl bg-white text-gray dark:text-ligt dark:bg-darkCard p-3 mb-4 space-y-3">
@@ -290,9 +550,9 @@ export default function MenuPage() {
                 <div className="text-xs text-slate-500">Картинка (URL)</div>
                 <input
                   className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full"
-                  value={it.images?.[0]?.url ?? ''}
+                  value={imageUrl}
                   onChange={(e) =>
-                    updateItem(it.id, { images: [{ id: 'img-1', url: e.target.value }] })
+                    updateItem(it.id, { images: [{ id: imageId, url: e.target.value }] })
                   }
                 />
               </div>
@@ -300,20 +560,29 @@ export default function MenuPage() {
 
             <div className="space-y-1">
               <div className="text-xs text-slate-500">Картинка (нажмите, чтобы загрузить)</div>
-              <div className="relative group w-full aspect-square overflow-hidden rounded-xl">
-                <img
-                  src={it.images?.[0]?.url ?? ''}
-                  alt={it.title}
-                  className='h-full w-full object-cover cursor-pointer'
-                  onClick={() => triggerPickImage(it.id)}
-                />
-                <div
-                  className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition"
-                  onClick={() => triggerPickImage(it.id)}
-                >
-                  <HiOutlineCamera className="text-white text-2xl" />
-                </div>
-              </div>
+              <button
+                type="button"
+                className="relative group w-full aspect-square overflow-hidden rounded-xl border border-gray-200"
+                onClick={() => triggerPickImage(it.id)}
+              >
+                {imageUrl ? (
+                  <>
+                    <img
+                      src={imageUrl}
+                      alt={it.title}
+                      className="h-full w-full object-cover cursor-pointer"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition">
+                      <HiOutlineCamera className="text-white text-2xl" />
+                    </div>
+                  </>
+                ) : (
+                  <div className="h-full w-full flex flex-col items-center justify-center gap-2 text-slate-500 border-2 border-dashed border-gray-300 rounded-xl">
+                    <HiOutlineCamera className="text-3xl" />
+                    <span className="text-sm">Загрузить фото</span>
+                  </div>
+                )}
+              </button>
             </div>
 
             <div className="space-y-1">
@@ -326,6 +595,38 @@ export default function MenuPage() {
                 }
               />
             </div>
+            <div className="space-y-2">
+              <div className="text-xs text-slate-500">Перемещение</div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => moveItemWithinCategory(it.id, -1)}
+                  disabled={!canMoveUp}
+                  className="flex-1 px-3 py-2 rounded-md border disabled:opacity-40"
+                  title="Поднять выше"
+                >
+                  ↑ Выше
+                </button>
+                <button
+                  onClick={() => moveItemWithinCategory(it.id, 1)}
+                  disabled={!canMoveDown}
+                  className="flex-1 px-3 py-2 rounded-md border disabled:opacity-40"
+                  title="Опустить ниже"
+                >
+                  ↓ Ниже
+                </button>
+              </div>
+              <select
+                className="rounded-md border border-gray-300 dark:border-dark px-2 py-2 w-full"
+                value={it.categoryId}
+                onChange={(e) => moveItemToCategory(it.id, e.target.value)}
+              >
+                {cats.map((cat) => (
+                  <option key={`move-mobile-${it.id}-${cat.id}`} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="pt-1">
               <button
                 onClick={() => confirm(it.id)}
@@ -335,7 +636,8 @@ export default function MenuPage() {
               </button>
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
       <MainButton
         text={saving ? 'Сохранение...' : 'Сохранить'}
