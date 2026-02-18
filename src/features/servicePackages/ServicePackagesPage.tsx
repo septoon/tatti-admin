@@ -1,10 +1,12 @@
 import React from 'react'
 import { getFile, putFile } from '../../lib/api'
 import SimpleItemsEditor from '../../components/SimpleItemsEditor'
+import SimpleAddItemSheet, { type SimpleItemDraft } from '../../components/SimpleAddItemSheet'
 import Loader from '../../components/Loader/Loader'
 import { MainButton } from '@twa-dev/sdk/react'
 import WebApp from '@twa-dev/sdk'
 import { iosUi } from '../../styles/ios'
+import { uploadToImgbb } from '../../lib/uploadToImgbb'
 
 // Унифицированная строка редактора (поддержим лишние поля, чтобы не потерять их при сохранении)
 type Row = {
@@ -93,12 +95,30 @@ function generateId(seed: number): number {
   return Number(String(Date.now()).slice(-6)) + seed
 }
 
+function createEmptyDraft(): SimpleItemDraft {
+  return {
+    name: '',
+    price: '',
+    description: '',
+    imageUrl: '',
+  }
+}
+
 export default function ServicePackagesPage() {
   const [pkgs, setPkgs] = React.useState<Row[]>([])
   const [extras, setExtras] = React.useState<Row[]>([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
   const [saving, setSaving] = React.useState(false)
+  const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false)
+  const [addingItem, setAddingItem] = React.useState(false)
+  const [addMode, setAddMode] = React.useState<'package' | 'extra'>('package')
+  const [newItemDraft, setNewItemDraft] = React.useState<SimpleItemDraft>(createEmptyDraft())
+  const [newItemImageFile, setNewItemImageFile] = React.useState<File | null>(null)
+  const [newItemImagePreviewUrl, setNewItemImagePreviewUrl] = React.useState('')
+
+  const addDialogFileInputRef = React.useRef<HTMLInputElement>(null)
+  const addDialogFormRef = React.useRef<HTMLFormElement>(null)
 
   React.useEffect(() => {
     ;(async () => {
@@ -116,16 +136,82 @@ export default function ServicePackagesPage() {
     })()
   }, [])
 
-  const addPkg = () => {
-    WebApp.HapticFeedback.impactOccurred('heavy')
-    setPkgs(prev => [...prev, { name: '', price: 0, image: '', description: [] }])
-  }
-  const delPkg = (idx: number) => setPkgs(prev => prev.filter((_, i) => i !== idx))
+  React.useEffect(() => {
+    if (!newItemImageFile) {
+      setNewItemImagePreviewUrl('')
+      return
+    }
+    const nextPreviewUrl = URL.createObjectURL(newItemImageFile)
+    setNewItemImagePreviewUrl(nextPreviewUrl)
+    return () => URL.revokeObjectURL(nextPreviewUrl)
+  }, [newItemImageFile])
 
-  const addExtra = () => {
-    WebApp.HapticFeedback.impactOccurred('heavy')
-    setExtras(prev => [...prev, { name: '', price: 0, image: '', description: [] }])
+  function openAddDialog(mode: 'package' | 'extra') {
+    setAddMode(mode)
+    setNewItemDraft(createEmptyDraft())
+    setNewItemImageFile(null)
+    if (addDialogFileInputRef.current) addDialogFileInputRef.current.value = ''
+    setIsAddDialogOpen(true)
   }
+
+  function closeAddDialog() {
+    setIsAddDialogOpen(false)
+    setNewItemImageFile(null)
+    if (addDialogFileInputRef.current) addDialogFileInputRef.current.value = ''
+  }
+
+  function triggerPickAddItemImage() {
+    addDialogFileInputRef.current?.click()
+  }
+
+  function handleAddItemImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null
+    setNewItemImageFile(file)
+  }
+
+  async function addRowFromDraft(draft: SimpleItemDraft) {
+    if (addingItem) return
+    setAddingItem(true)
+    try {
+      WebApp.HapticFeedback.impactOccurred('heavy')
+      const parsedPrice = Number(draft.price)
+      const price = Number.isFinite(parsedPrice) ? parsedPrice : 0
+      const description = draft.description
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+
+      let imageUrl = draft.imageUrl.trim()
+      if (newItemImageFile) {
+        imageUrl = await uploadToImgbb(newItemImageFile)
+      }
+
+      const nextRow: Row = {
+        name: draft.name.trim(),
+        price,
+        image: imageUrl,
+        description,
+      }
+
+      if (addMode === 'package') {
+        setPkgs((prev) => [...prev, nextRow])
+      } else {
+        setExtras((prev) => [...prev, nextRow])
+      }
+      closeAddDialog()
+    } catch (e: any) {
+      alert('Ошибка добавления: ' + (e?.message || 'unknown'))
+    } finally {
+      setAddingItem(false)
+    }
+  }
+
+  async function onAddItemSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    await addRowFromDraft(newItemDraft)
+  }
+
+  const delPkg = (idx: number) => setPkgs(prev => prev.filter((_, i) => i !== idx))
   const delExtra = (idx: number) => setExtras(prev => prev.filter((_, i) => i !== idx))
 
   async function onSave() {
@@ -152,7 +238,7 @@ export default function ServicePackagesPage() {
 
   const iosFontFamily = iosUi.fontFamily
   const iosPanel = iosUi.panel
-  const iosPrimaryButton = iosUi.primaryButton
+  const iosPrimaryButton = iosUi.primaryButtonLarge
 
   return (
     <div className="space-y-6 pb-2" style={{ fontFamily: iosFontFamily }}>
@@ -161,8 +247,11 @@ export default function ServicePackagesPage() {
           <div className="text-[22px] leading-7 font-semibold tracking-[-0.01em] text-[#111827] dark:text-[#f2f2f7]">
             Пакеты услуг
           </div>
-          <button onClick={addPkg} className={`${iosPrimaryButton} ml-auto`}>
-            + Пакет
+          <button
+            className={`${iosPrimaryButton} md:min-w-[132px] ml-auto`}
+            onClick={() => openAddDialog('package')}
+          >
+            Добавить пакет
           </button>
         </div>
       </section>
@@ -180,8 +269,11 @@ export default function ServicePackagesPage() {
           <div className="text-[20px] leading-6 font-semibold tracking-[-0.01em] text-[#111827] dark:text-[#f2f2f7]">
             Дополнительно
           </div>
-          <button onClick={addExtra} className={`${iosPrimaryButton} ml-auto`}>
-            + Услуга
+          <button
+            className={`${iosPrimaryButton} md:min-w-[132px] ml-auto`}
+            onClick={() => openAddDialog('extra')}
+          >
+            Добавить услугу
           </button>
         </div>
       </section>
@@ -192,6 +284,25 @@ export default function ServicePackagesPage() {
         onDeleteRow={delExtra}
         enableImageUpload={true}
         iosStyles={true}
+      />
+      <SimpleAddItemSheet
+        open={isAddDialogOpen}
+        onDismiss={closeAddDialog}
+        title={addMode === 'package' ? 'Новый пакет' : 'Новая услуга'}
+        submitLabel={addMode === 'package' ? 'Добавить пакет' : 'Добавить услугу'}
+        formRef={addDialogFormRef}
+        onSubmit={onAddItemSubmit}
+        draft={newItemDraft}
+        onNameChange={(value) => setNewItemDraft((prev) => ({ ...prev, name: value }))}
+        onPriceChange={(value) => setNewItemDraft((prev) => ({ ...prev, price: value }))}
+        onDescriptionChange={(value) => setNewItemDraft((prev) => ({ ...prev, description: value }))}
+        onImageUrlChange={(value) => setNewItemDraft((prev) => ({ ...prev, imageUrl: value }))}
+        onPickImage={triggerPickAddItemImage}
+        imageFile={newItemImageFile}
+        imagePreviewUrl={newItemImagePreviewUrl}
+        fileInputRef={addDialogFileInputRef}
+        onImageChange={handleAddItemImageChange}
+        submitting={addingItem}
       />
       <MainButton text={saving ? 'Сохранение...' : 'Сохранить'} onClick={onSave} disabled={saving} />
     </div>

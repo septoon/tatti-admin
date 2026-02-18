@@ -1,11 +1,12 @@
 import React from 'react'
-import axios from 'axios'
 import { HiOutlineCamera } from 'react-icons/hi'
 import { MainButton } from '@twa-dev/sdk/react'
 import WebApp from '@twa-dev/sdk'
 import Loader from '../../components/Loader/Loader'
 import { getFile, putFile } from '../../lib/api'
+import SimpleAddItemSheet, { type SimpleItemDraft } from '../../components/SimpleAddItemSheet'
 import { iosUi } from '../../styles/ios'
+import { uploadToImgbb } from '../../lib/uploadToImgbb'
 
 type ImageEntry = { id: string; url: string }
 
@@ -108,12 +109,28 @@ function mapItemsToRaw(items: NewYearItem[]): Record<string, any> {
   return out
 }
 
+function createEmptyDraft(): SimpleItemDraft {
+  return {
+    name: '',
+    price: '',
+    description: '',
+    imageUrl: '',
+  }
+}
+
 export default function NewYearPage() {
   const [items, setItems] = React.useState<NewYearItem[]>([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
   const [saving, setSaving] = React.useState(false)
+  const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false)
+  const [addingItem, setAddingItem] = React.useState(false)
+  const [newItemDraft, setNewItemDraft] = React.useState<SimpleItemDraft>(createEmptyDraft())
+  const [newItemImageFile, setNewItemImageFile] = React.useState<File | null>(null)
+  const [newItemImagePreviewUrl, setNewItemImagePreviewUrl] = React.useState('')
   const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const addDialogFileInputRef = React.useRef<HTMLInputElement>(null)
+  const addDialogFormRef = React.useRef<HTMLFormElement>(null)
   const [uploadingId, setUploadingId] = React.useState<string | null>(null)
 
   React.useEffect(() => {
@@ -130,6 +147,16 @@ export default function NewYearPage() {
     })()
   }, [])
 
+  React.useEffect(() => {
+    if (!newItemImageFile) {
+      setNewItemImagePreviewUrl('')
+      return
+    }
+    const nextPreviewUrl = URL.createObjectURL(newItemImageFile)
+    setNewItemImagePreviewUrl(nextPreviewUrl)
+    return () => URL.revokeObjectURL(nextPreviewUrl)
+  }, [newItemImageFile])
+
   const updateItem = (id: string, patch: Partial<NewYearItem>) => {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)))
   }
@@ -138,21 +165,68 @@ export default function NewYearPage() {
     setItems((prev) => prev.filter((it) => it.id !== id))
   }
 
-  const addRow = () => {
-    WebApp.HapticFeedback.impactOccurred('heavy')
-    const newId = generateId(items.length)
-    setItems((prev) => [
-      ...prev,
-      {
-        key: `item_${prev.length + 1}`,
-        id: newId,
-        title: '',
-        price: 0,
-        description: [],
-        images: [],
-        imageField: 'image',
-      },
-    ])
+  function openAddDialog() {
+    setNewItemDraft(createEmptyDraft())
+    setNewItemImageFile(null)
+    if (addDialogFileInputRef.current) addDialogFileInputRef.current.value = ''
+    setIsAddDialogOpen(true)
+  }
+
+  function closeAddDialog() {
+    setIsAddDialogOpen(false)
+    setNewItemImageFile(null)
+    if (addDialogFileInputRef.current) addDialogFileInputRef.current.value = ''
+  }
+
+  function triggerPickAddItemImage() {
+    addDialogFileInputRef.current?.click()
+  }
+
+  function handleAddItemImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null
+    setNewItemImageFile(file)
+  }
+
+  async function addRowFromDraft(draft: SimpleItemDraft) {
+    if (addingItem) return
+    setAddingItem(true)
+    try {
+      WebApp.HapticFeedback.impactOccurred('heavy')
+      const parsedPrice = Number(draft.price)
+      const price = Number.isFinite(parsedPrice) ? parsedPrice : 0
+      const description = draft.description
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+
+      let imageUrl = draft.imageUrl.trim()
+      if (newItemImageFile) {
+        imageUrl = await uploadToImgbb(newItemImageFile)
+      }
+
+      setItems((prev) => [
+        ...prev,
+        {
+          key: `item_${prev.length + 1}`,
+          id: generateId(prev.length),
+          title: draft.name.trim(),
+          price,
+          description,
+          images: imageUrl ? [{ id: 'img-1', url: imageUrl }] : [],
+          imageField: 'image',
+        },
+      ])
+      closeAddDialog()
+    } catch (e: any) {
+      alert('Ошибка добавления: ' + (e?.message || 'unknown'))
+    } finally {
+      setAddingItem(false)
+    }
+  }
+
+  async function onAddItemSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    await addRowFromDraft(newItemDraft)
   }
 
   const confirm = (id: string) => {
@@ -177,14 +251,7 @@ export default function NewYearPage() {
     if (!file || !uploadingId) return
     try {
       setSaving(true)
-      const formData = new FormData()
-      formData.append('image', file)
-      const apiKey = process.env.REACT_APP_IMGBB_KEY
-      if (!apiKey) throw new Error('Не задан REACT_APP_IMGBB_KEY')
-      const imgbbUrl = `https://api.imgbb.com/1/upload?key=${apiKey}`
-      const resp = await axios.post(imgbbUrl, formData)
-      const url: string | undefined = resp?.data?.data?.url
-      if (!url) throw new Error('ImgBB вернул пустой URL')
+      const url = await uploadToImgbb(file)
       updateItem(uploadingId, {
         images: [{ id: 'img-1', url }],
       })
@@ -224,7 +291,7 @@ export default function NewYearPage() {
   const iosPanel = iosUi.panel
   const iosInputCompact = iosUi.inputCompact
   const iosLabel = iosUi.label
-  const iosPrimaryButton = iosUi.primaryButton
+  const iosPrimaryButton = iosUi.primaryButtonLarge
   const iosDangerButton = iosUi.dangerButton
 
   return (
@@ -234,8 +301,11 @@ export default function NewYearPage() {
           <div className="text-[22px] leading-7 font-semibold tracking-[-0.01em] text-[#111827] dark:text-[#f2f2f7]">
             Новый Год
           </div>
-          <button onClick={addRow} className={`${iosPrimaryButton} ml-auto`}>
-          + Строка
+          <button
+            className={`${iosPrimaryButton} md:min-w-[132px] ml-auto`}
+            onClick={openAddDialog}
+          >
+            Добавить блюдо
           </button>
         </div>
       </section>
@@ -433,6 +503,25 @@ export default function NewYearPage() {
         ))}
       </div>
 
+      <SimpleAddItemSheet
+        open={isAddDialogOpen}
+        onDismiss={closeAddDialog}
+        title="Новое блюдо"
+        submitLabel="Добавить блюдо"
+        formRef={addDialogFormRef}
+        onSubmit={onAddItemSubmit}
+        draft={newItemDraft}
+        onNameChange={(value) => setNewItemDraft((prev) => ({ ...prev, name: value }))}
+        onPriceChange={(value) => setNewItemDraft((prev) => ({ ...prev, price: value }))}
+        onDescriptionChange={(value) => setNewItemDraft((prev) => ({ ...prev, description: value }))}
+        onImageUrlChange={(value) => setNewItemDraft((prev) => ({ ...prev, imageUrl: value }))}
+        onPickImage={triggerPickAddItemImage}
+        imageFile={newItemImageFile}
+        imagePreviewUrl={newItemImagePreviewUrl}
+        fileInputRef={addDialogFileInputRef}
+        onImageChange={handleAddItemImageChange}
+        submitting={addingItem}
+      />
       <MainButton text={saving ? 'Сохранение...' : 'Сохранить'} onClick={onSave} disabled={saving} />
       <input
         ref={fileInputRef}
