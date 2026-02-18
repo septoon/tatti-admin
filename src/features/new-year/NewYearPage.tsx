@@ -229,6 +229,14 @@ export default function NewYearPage() {
     await addRowFromDraft(newItemDraft)
   }
 
+  function onMainButtonClick() {
+    if (isAddDialogOpen) {
+      addDialogFormRef.current?.requestSubmit()
+      return
+    }
+    void onSave()
+  }
+
   const confirm = (id: string) => {
     const item = items.find((i) => i.id === id)
     const name = item?.title && item.title.trim() !== '' ? item.title : 'новое блюдо'
@@ -507,7 +515,6 @@ export default function NewYearPage() {
         open={isAddDialogOpen}
         onDismiss={closeAddDialog}
         title="Новое блюдо"
-        submitLabel="Добавить блюдо"
         formRef={addDialogFormRef}
         onSubmit={onAddItemSubmit}
         draft={newItemDraft}
@@ -522,7 +529,12 @@ export default function NewYearPage() {
         onImageChange={handleAddItemImageChange}
         submitting={addingItem}
       />
-      <MainButton text={saving ? 'Сохранение...' : 'Сохранить'} onClick={onSave} disabled={saving} />
+      <MainButton
+        text={isAddDialogOpen ? (addingItem ? 'Добавление...' : 'Добавить') : (saving ? 'Сохранение...' : 'Сохранить')}
+        onClick={onMainButtonClick}
+        disabled={isAddDialogOpen ? addingItem : saving}
+        progress={isAddDialogOpen ? addingItem : saving}
+      />
       <input
         ref={fileInputRef}
         type="file"

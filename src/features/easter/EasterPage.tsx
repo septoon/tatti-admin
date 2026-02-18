@@ -165,6 +165,14 @@ export default function EasterPage() {
     await addRowFromDraft(newItemDraft)
   }
 
+  function onMainButtonClick() {
+    if (isAddDialogOpen) {
+      addDialogFormRef.current?.requestSubmit()
+      return
+    }
+    void onSave()
+  }
+
   const deleteRow = (idx: number) => setRows(prev => prev.filter((_, i) => i !== idx))
 
   async function onSave() {
@@ -219,7 +227,6 @@ export default function EasterPage() {
         open={isAddDialogOpen}
         onDismiss={closeAddDialog}
         title="Новое блюдо"
-        submitLabel="Добавить блюдо"
         formRef={addDialogFormRef}
         onSubmit={onAddItemSubmit}
         draft={newItemDraft}
@@ -234,7 +241,12 @@ export default function EasterPage() {
         onImageChange={handleAddItemImageChange}
         submitting={addingItem}
       />
-      <MainButton text={saving ? 'Сохранение...' : 'Сохранить'} onClick={onSave} disabled={saving} />
+      <MainButton
+        text={isAddDialogOpen ? (addingItem ? 'Добавление...' : 'Добавить') : (saving ? 'Сохранение...' : 'Сохранить')}
+        onClick={onMainButtonClick}
+        disabled={isAddDialogOpen ? addingItem : saving}
+        progress={isAddDialogOpen ? addingItem : saving}
+      />
     </div>
   )
 }

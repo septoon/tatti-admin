@@ -211,6 +211,14 @@ export default function ServicePackagesPage() {
     await addRowFromDraft(newItemDraft)
   }
 
+  function onMainButtonClick() {
+    if (isAddDialogOpen) {
+      addDialogFormRef.current?.requestSubmit()
+      return
+    }
+    void onSave()
+  }
+
   const delPkg = (idx: number) => setPkgs(prev => prev.filter((_, i) => i !== idx))
   const delExtra = (idx: number) => setExtras(prev => prev.filter((_, i) => i !== idx))
 
@@ -289,7 +297,6 @@ export default function ServicePackagesPage() {
         open={isAddDialogOpen}
         onDismiss={closeAddDialog}
         title={addMode === 'package' ? 'Новый пакет' : 'Новая услуга'}
-        submitLabel={addMode === 'package' ? 'Добавить пакет' : 'Добавить услугу'}
         formRef={addDialogFormRef}
         onSubmit={onAddItemSubmit}
         draft={newItemDraft}
@@ -304,7 +311,12 @@ export default function ServicePackagesPage() {
         onImageChange={handleAddItemImageChange}
         submitting={addingItem}
       />
-      <MainButton text={saving ? 'Сохранение...' : 'Сохранить'} onClick={onSave} disabled={saving} />
+      <MainButton
+        text={isAddDialogOpen ? (addingItem ? 'Добавление...' : 'Добавить') : (saving ? 'Сохранение...' : 'Сохранить')}
+        onClick={onMainButtonClick}
+        disabled={isAddDialogOpen ? addingItem : saving}
+        progress={isAddDialogOpen ? addingItem : saving}
+      />
     </div>
   )
 }

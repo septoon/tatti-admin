@@ -14,7 +14,6 @@ type Props = {
   open: boolean
   onDismiss: () => void
   title: string
-  submitLabel: string
   formRef: React.RefObject<HTMLFormElement>
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void
   draft: SimpleItemDraft
@@ -34,7 +33,6 @@ export default function SimpleAddItemSheet({
   open,
   onDismiss,
   title,
-  submitLabel,
   formRef,
   onSubmit,
   draft,
@@ -155,13 +153,7 @@ export default function SimpleAddItemSheet({
           />
         </div>
 
-        <button
-          type="submit"
-          className={`${iosUi.primaryButtonLarge} w-full`}
-          disabled={submitting}
-        >
-          {submitting ? 'Добавление...' : submitLabel}
-        </button>
+        <button type="submit" className="hidden" tabIndex={-1} aria-hidden="true" />
       </form>
     </BottomSheet>
   )
