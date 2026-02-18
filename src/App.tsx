@@ -41,7 +41,7 @@ export default function App() {
   const hasAccess = typeof userId === 'number' && chatIds.includes(userId)
 
   return (
-    <div className="max-w-7xl h-full mx-auto p-4 space-y-4">
+    <div className="app-shell-safe-area max-w-7xl h-full mx-auto space-y-4">
       {hasAccess ? (
         <>
           <NavTabs value={tab} onChange={setTab} />

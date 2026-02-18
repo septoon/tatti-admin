@@ -16,6 +16,24 @@ body {
   background: var(--bg);
 }
 
+.app-shell-safe-area {
+  padding-top: calc(1rem + env(safe-area-inset-top));
+  padding-right: 1rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  padding-left: 1rem;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 select {
   /* убираем стандартную стрелку */
   appearance: none;
@@ -43,3 +61,40 @@ select {
 }
 /* применяем цвет к тексту и стрелке (currentColor) */
 select { color: var(--select-color); }
+
+.ios-add-item-sheet {
+  --rsbs-bg: #f2f2f7;
+  --rsbs-backdrop-bg: rgba(0, 0, 0, 0.4);
+  --rsbs-overlay-rounded: 28px;
+  --rsbs-handle-bg: #c7c7cc;
+}
+
+:root[data-color-scheme='dark'] .ios-add-item-sheet {
+  --rsbs-bg: #1c1c1e;
+  --rsbs-handle-bg: #48484a;
+}
+
+.ios-add-item-sheet [data-rsbs-overlay] {
+  box-shadow: 0 -24px 64px rgba(0, 0, 0, 0.32);
+}
+
+.ios-add-item-sheet [data-rsbs-header] {
+  box-shadow: none;
+  padding-bottom: 6px;
+}
+
+.ios-add-item-sheet [data-rsbs-content] {
+  padding: 0 1rem calc(env(safe-area-inset-bottom) + 0.75rem);
+}
+
+@media (min-width: 768px) {
+  .ios-add-item-sheet [data-rsbs-overlay] {
+    max-width: 42rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .ios-add-item-sheet [data-rsbs-content] {
+    padding: 0 1.25rem calc(env(safe-area-inset-bottom) + 0.75rem);
+  }
+}

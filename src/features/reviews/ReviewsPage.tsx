@@ -2,6 +2,7 @@ import React from 'react';
 import { getReviews, appendToArrayFile, putFile } from '../../lib/api';
 import Loader from '../../components/Loader/Loader';
 import WebApp from '@twa-dev/sdk';
+import { iosUi } from '../../styles/ios';
 
 export default function ReviewsPage() {
   const [list, setList] = React.useState<any[]>([]);
@@ -60,42 +61,61 @@ export default function ReviewsPage() {
   };
 
   if (loading) return <Loader />;
-  if (error) return <div className="p-4 text-red-600">{error}</div>;
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-red-500/20 bg-red-50/80 px-4 py-3 text-sm text-red-700 dark:border-red-400/20 dark:bg-red-900/20 dark:text-red-300">
+        {error}
+      </div>
+    )
+  }
+
+  const iosFontFamily = iosUi.fontFamily
+  const iosPanel = iosUi.panel
+  const iosInput = iosUi.input
+  const iosLabel = iosUi.label
+  const iosPrimaryButton = iosUi.primaryButton
+  const iosDangerButton = iosUi.dangerButton
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" style={{ fontFamily: iosFontFamily }}>
       <form
         onSubmit={onAdd}
-        className="flex flex-col gap-2 p-3 rounded-xl shadow-lg bg-white dark:bg-darkCard text-gray dark:text-light">
-        <div className="font-semibold">Добавить отзыв</div>
+        className={`flex flex-col gap-3 p-4 ${iosPanel}`}>
+        <div className="text-[22px] leading-7 font-semibold tracking-[-0.01em] text-[#111827] dark:text-[#f2f2f7]">
+          Добавить отзыв
+        </div>
+        <div className={iosLabel}>Имя</div>
         <input
-          className="rounded-md border border-gray-300 dark:border-dark px-2 py-1"
+          className={iosInput}
           placeholder="Имя"
           value={form.name}
           onChange={(e) => setForm((v) => ({ ...v, name: e.target.value }))}
         />
+        <div className={iosLabel}>Текст</div>
         <textarea
-          className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 h-24"
+          className={`${iosInput} h-24 resize-y`}
           placeholder="Текст"
           value={form.reviewText}
           onChange={(e) => setForm((v) => ({ ...v, reviewText: e.target.value }))}
         />
+        <div className={iosLabel}>Оценка</div>
         <input
           type="number"
           min={1}
           max={5}
-          className="rounded-md border border-gray-300 dark:border-dark px-2 py-1"
+          className={iosInput}
           placeholder="Оценка 1-5"
           value={form.rating}
           onChange={(e) => setForm((v) => ({ ...v, rating: Number(e.target.value) }))}
         />
+        <div className={iosLabel}>Фото (опционально)</div>
         <input
-          className="rounded-md border border-gray-300 dark:border-dark px-2 py-1"
+          className={iosInput}
           placeholder="Ссылка на фото (опц.)"
           value={form.image}
           onChange={(e) => setForm((v) => ({ ...v, image: e.target.value }))}
         />
-        <button className="self-start mt-2 px-3 py-1.5 w-full rounded-md bg-mainBtn text-white">
+        <button className={`${iosPrimaryButton} mt-1 w-full`}>
           Добавить
         </button>
       </form>
@@ -104,20 +124,29 @@ export default function ReviewsPage() {
         {list.map((r, idx) => (
           <div
             key={idx}
-            className="rounded-xl p-3 shadow-lg bg-white dark:bg-darkCard text-gray dark:text-light dark:bg-darkCard">
+            className={`${iosPanel} p-4 text-[#111827] dark:text-[#f2f2f7]`}>
             <div className="flex items-center gap-2">
-              <div className="font-semibold">
-                {r.name} <span className="text-xs text-slate-500">({r.rating})</span>
+              <div className="text-[18px] leading-6 font-semibold tracking-[-0.01em]">
+                {r.name}{' '}
+                <span className="text-xs text-[#6b7280] dark:text-[#8e8e93] font-medium">({r.rating})</span>
               </div>
+            </div>
+            {r.image ? (
+              <img
+                src={r.image}
+                alt=""
+                className="w-44 rounded-2xl border border-black/10 dark:border-white/10 mt-3"
+              />
+            ) : null}
+            <div className="my-3 text-[15px] leading-6 whitespace-pre-wrap text-[#374151] dark:text-[#e5e7eb]">
+              {r.reviewText}
+            </div>
               <button
-                className="ml-auto bg-red text-white px-2 py-0.5 opacity-70 rounded-md"
+                className={`${iosDangerButton} w-full`}
                 onClick={() => confirmDelete(idx)}
                 title="Удалить отзыв">
                 Удалить
               </button>
-            </div>
-            {r.image ? <img src={r.image} alt="" className="w-40 rounded mt-2" /> : null}
-            <div className="mt-2 text-sm whitespace-pre-wrap">{r.reviewText}</div>
           </div>
         ))}
       </div>

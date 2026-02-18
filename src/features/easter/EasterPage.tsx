@@ -4,6 +4,7 @@ import SimpleItemsEditor, { type Item } from '../../components/SimpleItemsEditor
 import Loader from '../../components/Loader/Loader'
 import { MainButton } from '@twa-dev/sdk/react'
 import WebApp from '@twa-dev/sdk'
+import { iosUi } from '../../styles/ios'
 
 function easterObjectToRows(obj: any): Item[] {
   if (!obj || typeof obj !== 'object') return []
@@ -97,15 +98,37 @@ export default function EasterPage() {
   }
 
   if (loading) return <Loader />
-  if (error) return <div className="p-4 text-red-600">{error}</div>
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-red-500/20 bg-red-50/80 px-4 py-3 text-sm text-red-700 dark:border-red-400/20 dark:bg-red-900/20 dark:text-red-300">
+        {error}
+      </div>
+    )
+  }
+
+  const iosFontFamily = iosUi.fontFamily
+  const iosPanel = iosUi.panel
+  const iosPrimaryButton = iosUi.primaryButton
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <div className="font-semibold">Пасха</div>
-        <button onClick={addRow} className="ml-auto px-3 py-1.5 rounded-md bg-mainBtn text-white">+ Строка</button>
-      </div>
-      <SimpleItemsEditor rows={rows} setRows={setRows} onDeleteRow={deleteRow} enableImageUpload={true} />
+    <div className="space-y-4 pb-2" style={{ fontFamily: iosFontFamily }}>
+      <section className={`${iosPanel} p-3 md:p-4`}>
+        <div className="flex items-center gap-2">
+          <div className="text-[22px] leading-7 font-semibold tracking-[-0.01em] text-[#111827] dark:text-[#f2f2f7]">
+            Пасха
+          </div>
+          <button onClick={addRow} className={`${iosPrimaryButton} ml-auto`}>
+            + Строка
+          </button>
+        </div>
+      </section>
+      <SimpleItemsEditor
+        rows={rows}
+        setRows={setRows}
+        onDeleteRow={deleteRow}
+        enableImageUpload={true}
+        iosStyles={true}
+      />
       <MainButton text={saving ? 'Сохранение...' : 'Сохранить'} onClick={onSave} disabled={saving} />
     </div>
   )

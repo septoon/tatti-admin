@@ -7,6 +7,8 @@ import { MainButton } from '@twa-dev/sdk/react';
 import { IoSearch } from 'react-icons/io5';
 import { HiOutlineCamera } from 'react-icons/hi';
 import { convertImageToWebp } from '../../lib/imageToWebp';
+import AddItemSheet from './components/AddItemSheet';
+import { iosUi } from '../../styles/ios';
 
 function compareItems(a: Item, b: Item) {
   const sa = Number(a.sortOrder ?? 0)
@@ -26,7 +28,7 @@ function createEmptyDraft(categoryId: string): NewItemDraft {
   return {
     categoryId,
     title: '',
-    price: '0',
+    price: '',
     description: '',
   }
 }
@@ -47,6 +49,7 @@ export default function MenuPage() {
 
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const addDialogFileInputRef = React.useRef<HTMLInputElement>(null)
+  const addDialogFormRef = React.useRef<HTMLFormElement>(null)
   const [uploadingId, setUploadingId] = React.useState<string | null>(null)
 
   React.useEffect(() => {
@@ -262,6 +265,14 @@ export default function MenuPage() {
     await addItemFromDraft(newItemDraft)
   }
 
+  function onMainButtonClick() {
+    if (isAddDialogOpen) {
+      addDialogFormRef.current?.requestSubmit()
+      return
+    }
+    void onSave()
+  }
+
   function moveItemWithinCategory(id: string, direction: -1 | 1) {
     if (!data) return
     const current = data.items.find((item) => item.id === id)
@@ -404,7 +415,13 @@ export default function MenuPage() {
   }
 
   if (loading) return <Loader />;
-  if (error) return <div className="p-4 text-red-600">{error}</div>;
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-red-500/20 bg-red-50/80 px-4 py-3 text-sm text-red-700 dark:border-red-400/20 dark:bg-red-900/20 dark:text-red-300">
+        {error}
+      </div>
+    )
+  }
   if (!data) return null;
 
   const q = query.trim().toLowerCase();
@@ -421,55 +438,64 @@ export default function MenuPage() {
     });
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="relative w-full mb-6">
-        <IoSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-red-400 text-xl" />
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Поиск по названию..."
-          className="w-full p-2 pl-10 bg-light dark:bg-dark border-b border-gray-500 dark:border-darkCard focus:border-0"
-        />
-      </div>
-      <div className="flex items-center gap-2">
-        <select
-          className="rounded-md border border-gray-300 dark:border-dark w-full px-2 py-3"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}>
-          <option value="all">Все категории</option>
-          {cats.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="flex items-center justify-end">
-        <button
-          className="px-3 py-2 rounded-md bg-mainBtn text-white whitespace-nowrap disabled:opacity-50"
-          onClick={openAddDialog}
-          disabled={!newItemCategoryId}
-        >
-          + Товар
-        </button>
-      </div>
+  const iosFontFamily = iosUi.fontFamily
+  const iosPanel = iosUi.panel
+  const iosInput = iosUi.input
+  const iosInputCompact = iosUi.inputCompact
+  const iosLabel = iosUi.label
+  const iosPrimaryButton = iosUi.primaryButtonLarge
+  const iosSubtleButton = iosUi.subtleButton
+  const iosDangerButton = iosUi.dangerButton
 
-      {/* Desktop table */}
-      <div className="overflow-auto rounded-md hidden md:block">
-        <table className="min-w-[900px] w-full text-sm">
-          <thead className="bg-slate-100">
-            <tr>
-              <th className="text-left p-2 w-36">Категория</th>
-              <th className="text-left p-2 w-64">Название</th>
-              <th className="text-left p-2 w-24">Цена</th>
-              <th className="text-left p-2">Описание (по строкам)</th>
-              <th className="text-left p-2 w-64">Картинка</th>
-              <th className="text-left p-2 w-72">Действия</th>
+  return (
+    <div className="space-y-4 pb-2" style={{ fontFamily: iosFontFamily }}>
+      <section className={`${iosPanel} p-3 md:p-4 space-y-3`}>
+        <div className="relative">
+          <IoSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8e8e93] text-lg" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Поиск по названию..."
+            className={`${iosInput} pl-11`}
+          />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2">
+          <select
+            className={iosInput}
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          >
+            <option value="all">Все категории</option>
+            {cats.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <button
+            className={`${iosPrimaryButton} md:min-w-[132px]`}
+            onClick={openAddDialog}
+            disabled={!newItemCategoryId}
+          >
+            Добавить блюдо
+          </button>
+        </div>
+      </section>
+
+      <div className={`hidden md:block overflow-auto ${iosPanel}`}>
+        <table className="min-w-[980px] w-full text-sm text-[#111827] dark:text-[#f2f2f7]">
+          <thead className="bg-white/70 dark:bg-[#2c2c2e]/70">
+            <tr className="text-[11px] uppercase tracking-[0.04em] text-[#6b7280] dark:text-[#8e8e93]">
+              <th className="text-left p-3 w-36 font-semibold">Категория</th>
+              <th className="text-left p-3 w-64 font-semibold">Название</th>
+              <th className="text-left p-3 w-28 font-semibold">Цена</th>
+              <th className="text-left p-3 font-semibold">Описание (по строкам)</th>
+              <th className="text-left p-3 w-64 font-semibold">Картинка</th>
+              <th className="text-left p-3 w-72 font-semibold">Действия</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-black/5 dark:divide-white/5">
             {items.map((it) => {
               const position = categoryPositions.get(it.id)
               const canMoveUp = (position?.index ?? 0) > 0
@@ -477,124 +503,123 @@ export default function MenuPage() {
               const imageUrl = it.images?.[0]?.url ?? ''
 
               return (
-              <tr key={it.id} className="border-t">
-                <td className="p-2">
-                  <input
-                    className="rounded-md px-2 py-1 w-full"
-                    value={getCatName(it.categoryId)}
-                    onChange={(e) => renameCategory(it.categoryId, e.target.value)}
-                  />
-                </td>
-                <td className="p-2">
-                  <input
-                    className="rounded-md px-2 py-1 w-full"
-                    value={it.title}
-                    onChange={(e) => updateItem(it.id, { title: e.target.value })}
-                  />
-                </td>
-                <td className="p-2">
-                  <input
-                    type="number"
-                    className="rounded-md px-2 py-1 w-24"
-                    value={it.price}
-                    onChange={(e) => updateItem(it.id, { price: Number(e.target.value) })}
-                  />
-                </td>
-                <td className="p-2">
-                  <textarea
-                    className="rounded-md px-2 py-1 w-full h-24"
-                    value={it.description.join('\n')}
-                    onChange={(e) =>
-                      updateItem(it.id, { description: e.target.value.split('\n').filter(Boolean) })
-                    }
-                  />
-                </td>
-                <td className="p-2">
-                  <div className="space-y-2">
+                <tr key={it.id} className="align-top">
+                  <td className="p-3">
                     <input
-                      className="rounded-md px-2 py-1 w-full"
-                      value={imageUrl}
+                      className={iosInputCompact}
+                      value={getCatName(it.categoryId)}
+                      onChange={(e) => renameCategory(it.categoryId, e.target.value)}
+                    />
+                  </td>
+                  <td className="p-3">
+                    <input
+                      className={iosInputCompact}
+                      value={it.title}
+                      onChange={(e) => updateItem(it.id, { title: e.target.value })}
+                    />
+                  </td>
+                  <td className="p-3">
+                    <input
+                      type="number"
+                      className={iosInputCompact}
+                      value={it.price}
+                      onChange={(e) => updateItem(it.id, { price: Number(e.target.value) })}
+                    />
+                  </td>
+                  <td className="p-3">
+                    <textarea
+                      className={`${iosInputCompact} h-24 resize-y`}
+                      value={it.description.join('\n')}
                       onChange={(e) =>
-                        updateItem(it.id, {
-                          images: [{ id: it.images?.[0]?.id ?? `img-${it.id}`, url: e.target.value }],
-                        })
+                        updateItem(it.id, { description: e.target.value.split('\n').filter(Boolean) })
                       }
                     />
-                    {imageUrl ? (
-                      <div className="relative inline-block group">
-                        <img
-                          src={imageUrl}
-                          alt={it.title}
-                          className="h-16 w-24 object-cover rounded cursor-pointer border"
-                          onClick={() => triggerPickImage(it.id)}
-                        />
-                        <div
-                          className="absolute inset-0 flex items-center justify-center rounded bg-black/30 opacity-0 group-hover:opacity-100 transition"
+                  </td>
+                  <td className="p-3">
+                    <div className="space-y-2">
+                      <input
+                        className={iosInputCompact}
+                        value={imageUrl}
+                        onChange={(e) =>
+                          updateItem(it.id, {
+                            images: [{ id: it.images?.[0]?.id ?? `img-${it.id}`, url: e.target.value }],
+                          })
+                        }
+                      />
+                      {imageUrl ? (
+                        <button
+                          type="button"
+                          className="relative inline-block group"
                           onClick={() => triggerPickImage(it.id)}
                         >
-                          <HiOutlineCamera className="text-white" />
-                        </div>
+                          <img
+                            src={imageUrl}
+                            alt={it.title}
+                            className="h-16 w-24 object-cover rounded-xl border border-black/10 dark:border-white/10"
+                          />
+                          <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/25 opacity-0 group-hover:opacity-100 transition">
+                            <HiOutlineCamera className="text-white" />
+                          </span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => triggerPickImage(it.id)}
+                          className="h-16 w-24 rounded-xl border border-dashed border-black/20 dark:border-white/20 bg-white dark:bg-[#2c2c2e] text-[11px] text-[#6b7280] dark:text-[#8e8e93] flex flex-col items-center justify-center gap-1"
+                        >
+                          <HiOutlineCamera className="text-base" />
+                          Загрузить
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                  <td className="p-3">
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => moveItemWithinCategory(it.id, -1)}
+                          disabled={!canMoveUp}
+                          className={iosSubtleButton}
+                          title="Поднять выше"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          onClick={() => moveItemWithinCategory(it.id, 1)}
+                          disabled={!canMoveDown}
+                          className={iosSubtleButton}
+                          title="Опустить ниже"
+                        >
+                          ↓
+                        </button>
                       </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => triggerPickImage(it.id)}
-                        className="h-16 w-24 rounded border-2 border-dashed border-gray-300 text-xs text-slate-500 flex flex-col items-center justify-center gap-1"
+                      <select
+                        className={iosInputCompact}
+                        value={it.categoryId}
+                        onChange={(e) => moveItemToCategory(it.id, e.target.value)}
                       >
-                        <HiOutlineCamera className="text-base" />
-                        Загрузить
-                      </button>
-                    )}
-                  </div>
-                </td>
-                <td className="p-2">
-                  <div className="space-y-2">
-                    <div className="flex gap-1">
+                        {cats.map((cat) => (
+                          <option key={`move-${it.id}-${cat.id}`} value={cat.id}>
+                            {cat.name}
+                          </option>
+                        ))}
+                      </select>
                       <button
-                        onClick={() => moveItemWithinCategory(it.id, -1)}
-                        disabled={!canMoveUp}
-                        className="px-2 py-1 rounded border disabled:opacity-40"
-                        title="Поднять выше"
+                        onClick={() => confirm(it.id)}
+                        className={`${iosDangerButton} w-full`}
+                        title="Удалить блюдо"
                       >
-                        ↑
-                      </button>
-                      <button
-                        onClick={() => moveItemWithinCategory(it.id, 1)}
-                        disabled={!canMoveDown}
-                        className="px-2 py-1 rounded border disabled:opacity-40"
-                        title="Опустить ниже"
-                      >
-                        ↓
+                        Удалить
                       </button>
                     </div>
-                    <select
-                      className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full"
-                      value={it.categoryId}
-                      onChange={(e) => moveItemToCategory(it.id, e.target.value)}
-                    >
-                      {cats.map((cat) => (
-                        <option key={`move-${it.id}-${cat.id}`} value={cat.id}>
-                          {cat.name}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => confirm(it.id)}
-                      className="px-2 py-1 rounded border text-red-600 hover:bg-red-50 w-full"
-                      title="Удалить блюдо"
-                    >
-                      Удалить
-                    </button>
-                  </div>
-                </td>
-              </tr>
+                  </td>
+                </tr>
               )
             })}
           </tbody>
         </table>
       </div>
 
-      {/* Mobile cards */}
       <div className="grid gap-3 md:hidden">
         {items.map((it) => {
           const position = categoryPositions.get(it.id)
@@ -604,255 +629,154 @@ export default function MenuPage() {
           const imageId = it.images?.[0]?.id ?? `img-${it.id}`
 
           return (
-          <div
-            key={it.id}
-            className="shadow-lg rounded-xl bg-white text-gray dark:text-ligt dark:bg-darkCard p-3 mb-4 space-y-3">
-            <div className="space-y-1">
-              <div className="text-xs text-slate-500">Категория</div>
-              <input
-                className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full"
-                value={getCatName(it.categoryId)}
-                onChange={(e) => renameCategory(it.categoryId, e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <div className="text-xs text-slate-500">Название</div>
-              <input
-                className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full"
-                value={it.title}
-                onChange={(e) => updateItem(it.id, { title: e.target.value })}
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="flex-1 space-y-1">
-                <div className="text-xs text-slate-500">Цена</div>
+            <div key={it.id} className={`${iosPanel} p-4 space-y-3`}>
+              <div className="space-y-1">
+                <div className={iosLabel}>Категория</div>
                 <input
-                  type="number"
-                  className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full"
-                  value={it.price}
-                  onChange={(e) => updateItem(it.id, { price: Number(e.target.value) })}
+                  className={iosInputCompact}
+                  value={getCatName(it.categoryId)}
+                  onChange={(e) => renameCategory(it.categoryId, e.target.value)}
                 />
               </div>
-              <div className="flex-1 space-y-1">
-                <div className="text-xs text-slate-500">Картинка (URL)</div>
+
+              <div className="space-y-1">
+                <div className={iosLabel}>Название</div>
                 <input
-                  className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full"
-                  value={imageUrl}
+                  className={iosInputCompact}
+                  value={it.title}
+                  onChange={(e) => updateItem(it.id, { title: e.target.value })}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-3">
+                <div className="space-y-1">
+                  <div className={iosLabel}>Цена</div>
+                  <input
+                    type="number"
+                    className={iosInputCompact}
+                    value={it.price}
+                    onChange={(e) => updateItem(it.id, { price: Number(e.target.value) })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <div className={iosLabel}>Картинка (URL)</div>
+                  <input
+                    className={iosInputCompact}
+                    value={imageUrl}
+                    onChange={(e) =>
+                      updateItem(it.id, { images: [{ id: imageId, url: e.target.value }] })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className={iosLabel}>Картинка (нажмите, чтобы загрузить)</div>
+                <button
+                  type="button"
+                  className="relative group w-full aspect-square overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#2c2c2e]"
+                  onClick={() => triggerPickImage(it.id)}
+                >
+                  {imageUrl ? (
+                    <>
+                      <img
+                        src={imageUrl}
+                        alt={it.title}
+                        className="h-full w-full object-cover cursor-pointer"
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition">
+                        <HiOutlineCamera className="text-white text-2xl" />
+                      </span>
+                    </>
+                  ) : (
+                    <span className="h-full w-full flex flex-col items-center justify-center gap-2 text-[#8e8e93] border-2 border-dashed border-black/15 dark:border-white/20 rounded-2xl">
+                      <HiOutlineCamera className="text-3xl" />
+                      <span className="text-sm">Загрузить фото</span>
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              <div className="space-y-1">
+                <div className={iosLabel}>Описание (по строкам)</div>
+                <textarea
+                  className={`${iosInputCompact} h-28 resize-y`}
+                  value={it.description.join('\n')}
                   onChange={(e) =>
-                    updateItem(it.id, { images: [{ id: imageId, url: e.target.value }] })
+                    updateItem(it.id, { description: e.target.value.split('\n').filter(Boolean) })
                   }
                 />
               </div>
-            </div>
-
-            <div className="space-y-1">
-              <div className="text-xs text-slate-500">Картинка (нажмите, чтобы загрузить)</div>
-              <button
-                type="button"
-                className="relative group w-full aspect-square overflow-hidden rounded-xl border border-gray-200"
-                onClick={() => triggerPickImage(it.id)}
-              >
-                {imageUrl ? (
-                  <>
-                    <img
-                      src={imageUrl}
-                      alt={it.title}
-                      className="h-full w-full object-cover cursor-pointer"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition">
-                      <HiOutlineCamera className="text-white text-2xl" />
-                    </div>
-                  </>
-                ) : (
-                  <div className="h-full w-full flex flex-col items-center justify-center gap-2 text-slate-500 border-2 border-dashed border-gray-300 rounded-xl">
-                    <HiOutlineCamera className="text-3xl" />
-                    <span className="text-sm">Загрузить фото</span>
-                  </div>
-                )}
-              </button>
-            </div>
-
-            <div className="space-y-1">
-              <div className="text-xs text-slate-500">Описание (по строкам)</div>
-              <textarea
-                className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full h-28"
-                value={it.description.join('\n')}
-                onChange={(e) =>
-                  updateItem(it.id, { description: e.target.value.split('\n').filter(Boolean) })
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="text-sm text-slate-500">Перемещение</div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => moveItemWithinCategory(it.id, -1)}
-                  disabled={!canMoveUp}
-                  className="flex-1 px-3 py-2 rounded-md border disabled:opacity-40"
-                  title="Поднять выше"
+              <div className="space-y-2">
+                <div className={iosLabel}>Перемещение</div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => moveItemWithinCategory(it.id, -1)}
+                    disabled={!canMoveUp}
+                    className={`${iosSubtleButton} flex-1`}
+                    title="Поднять выше"
+                  >
+                    ↑ Выше
+                  </button>
+                  <button
+                    onClick={() => moveItemWithinCategory(it.id, 1)}
+                    disabled={!canMoveDown}
+                    className={`${iosSubtleButton} flex-1`}
+                    title="Опустить ниже"
+                  >
+                    ↓ Ниже
+                  </button>
+                </div>
+                <div className={iosLabel}>Сменить категорию</div>
+                <select
+                  className={iosInputCompact}
+                  value={it.categoryId}
+                  onChange={(e) => moveItemToCategory(it.id, e.target.value)}
                 >
-                  ↑ Выше
-                </button>
+                  {cats.map((cat) => (
+                    <option key={`move-mobile-${it.id}-${cat.id}`} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="pt-1">
                 <button
-                  onClick={() => moveItemWithinCategory(it.id, 1)}
-                  disabled={!canMoveDown}
-                  className="flex-1 px-3 py-2 rounded-md border disabled:opacity-40"
-                  title="Опустить ниже"
+                  onClick={() => confirm(it.id)}
+                  className={`${iosDangerButton} w-full`}
+                  title="Удалить блюдо"
                 >
-                  ↓ Ниже
+                  Удалить блюдо
                 </button>
               </div>
-              <div className="text-sm text-slate-500">Сменить категорию</div>
-              <select
-                className="rounded-md border border-gray-300 dark:border-dark px-2 py-2 w-full"
-                value={it.categoryId}
-                onChange={(e) => moveItemToCategory(it.id, e.target.value)}
-              >
-                {cats.map((cat) => (
-                  <option key={`move-mobile-${it.id}-${cat.id}`} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
             </div>
-            <div className="pt-1">
-              <button
-                onClick={() => confirm(it.id)}
-                className="w-full px-3 py-2 rounded-md bg-red text-white"
-                title="Удалить блюдо">
-                Удалить блюдо
-              </button>
-            </div>
-          </div>
           )
         })}
       </div>
-      {isAddDialogOpen && (
-        <div className="fixed inset-0 z-50 bg-black/55 backdrop-blur-[1px] p-3 flex items-end md:items-center md:justify-center overflow-y-auto">
-          <form
-            className="w-full md:max-w-2xl rounded-2xl border border-slate-700 bg-[#0f1720] text-white p-4 space-y-4 shadow-2xl max-h-[88vh] overflow-y-auto"
-            onSubmit={onAddItemSubmit}
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Новый товар</h3>
-              <button
-                type="button"
-                onClick={closeAddDialog}
-                className="rounded-md border border-slate-600 px-2 py-1 text-sm text-slate-200"
-                disabled={addingItem}
-              >
-                Закрыть
-              </button>
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs text-slate-300">Категория</div>
-              <select
-                className="rounded-md border border-slate-600 px-3 py-2 w-full bg-[#1f2a37]"
-                value={newItemDraft.categoryId}
-                onChange={(e) => setNewItemDraft((prev) => ({ ...prev, categoryId: e.target.value }))}
-                required
-              >
-                {cats.map((c) => (
-                  <option key={`modal-new-item-${c.id}`} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs text-slate-300">Название</div>
-              <input
-                className="rounded-md border border-slate-600 px-3 py-2 w-full bg-[#1f2a37]"
-                value={newItemDraft.title}
-                onChange={(e) => setNewItemDraft((prev) => ({ ...prev, title: e.target.value }))}
-                placeholder="Введите название"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <div className="text-xs text-slate-300">Цена</div>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  className="rounded-md border border-slate-600 px-3 py-2 w-full bg-[#1f2a37]"
-                  value={newItemDraft.price}
-                  onChange={(e) => setNewItemDraft((prev) => ({ ...prev, price: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="space-y-1">
-                <div className="text-xs text-slate-300">Картинка</div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={triggerPickAddItemImage}
-                    className="rounded-md border border-slate-600 px-3 py-2 bg-[#1f2a37] text-sm whitespace-nowrap"
-                    disabled={addingItem}
-                  >
-                    Добавить изображение
-                  </button>
-                  <div className="text-xs text-slate-400 truncate">
-                    {newItemImageFile ? newItemImageFile.name : 'Файл не выбран'}
-                  </div>
-                </div>
-                <div className="pt-1">
-                  {newItemImagePreviewUrl ? (
-                    <img
-                      src={newItemImagePreviewUrl}
-                      alt="preview"
-                      className="h-20 w-20 object-cover rounded-lg border border-slate-600"
-                    />
-                  ) : (
-                    <div className="h-20 w-20 rounded-lg border border-dashed border-slate-600 flex items-center justify-center text-slate-500">
-                      <HiOutlineCamera className="text-xl" />
-                    </div>
-                  )}
-                </div>
-                <input
-                  ref={addDialogFileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAddItemImageChange}
-                />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs text-slate-300">Описание (по строкам)</div>
-              <textarea
-                className="rounded-md border border-slate-600 px-3 py-2 w-full bg-[#1f2a37] h-24"
-                value={newItemDraft.description}
-                onChange={(e) => setNewItemDraft((prev) => ({ ...prev, description: e.target.value }))}
-              />
-            </div>
-            <div className="flex items-center justify-end gap-2 pt-1">
-              <button
-                type="button"
-                onClick={closeAddDialog}
-                className="px-3 py-2 rounded-md border border-slate-600 text-slate-200"
-                disabled={addingItem}
-              >
-                Отмена
-              </button>
-              <button
-                type="submit"
-                className="px-3 py-2 rounded-md bg-mainBtn text-white disabled:opacity-50"
-                disabled={addingItem}
-              >
-                {addingItem ? 'Добавление...' : 'Добавить'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+
+      <AddItemSheet
+        open={isAddDialogOpen}
+        onDismiss={closeAddDialog}
+        formRef={addDialogFormRef}
+        onSubmit={onAddItemSubmit}
+        cats={cats}
+        draft={newItemDraft}
+        onCategoryChange={(value) => setNewItemDraft((prev) => ({ ...prev, categoryId: value }))}
+        onTitleChange={(value) => setNewItemDraft((prev) => ({ ...prev, title: value }))}
+        onPriceChange={(value) => setNewItemDraft((prev) => ({ ...prev, price: value }))}
+        onDescriptionChange={(value) => setNewItemDraft((prev) => ({ ...prev, description: value }))}
+        addingItem={addingItem}
+        onPickImage={triggerPickAddItemImage}
+        imageFile={newItemImageFile}
+        imagePreviewUrl={newItemImagePreviewUrl}
+        fileInputRef={addDialogFileInputRef}
+        onImageChange={handleAddItemImageChange}
+      />
       <MainButton
-        text={saving ? 'Сохранение...' : 'Сохранить'}
-        onClick={onSave}
-        disabled={saving}
+        text={isAddDialogOpen ? (addingItem ? 'Добавление...' : 'Добавить') : (saving ? 'Сохранение...' : 'Сохранить')}
+        onClick={onMainButtonClick}
+        disabled={isAddDialogOpen ? addingItem : saving}
+        progress={isAddDialogOpen ? addingItem : saving}
       />
       <input
         ref={fileInputRef}

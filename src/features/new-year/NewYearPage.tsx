@@ -5,6 +5,7 @@ import { MainButton } from '@twa-dev/sdk/react'
 import WebApp from '@twa-dev/sdk'
 import Loader from '../../components/Loader/Loader'
 import { getFile, putFile } from '../../lib/api'
+import { iosUi } from '../../styles/ios'
 
 type ImageEntry = { id: string; url: string }
 
@@ -211,53 +212,70 @@ export default function NewYearPage() {
   }
 
   if (loading) return <Loader />
-  if (error) return <div className="p-4 text-red-600">{error}</div>
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-red-500/20 bg-red-50/80 px-4 py-3 text-sm text-red-700 dark:border-red-400/20 dark:bg-red-900/20 dark:text-red-300">
+        {error}
+      </div>
+    )
+  }
+
+  const iosFontFamily = iosUi.fontFamily
+  const iosPanel = iosUi.panel
+  const iosInputCompact = iosUi.inputCompact
+  const iosLabel = iosUi.label
+  const iosPrimaryButton = iosUi.primaryButton
+  const iosDangerButton = iosUi.dangerButton
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <div className="font-semibold">Новый Год</div>
-        <button onClick={addRow} className="ml-auto px-3 py-1.5 rounded-md bg-mainBtn text-white">
+    <div className="space-y-4 pb-2" style={{ fontFamily: iosFontFamily }}>
+      <section className={`${iosPanel} p-3 md:p-4`}>
+        <div className="flex items-center gap-2">
+          <div className="text-[22px] leading-7 font-semibold tracking-[-0.01em] text-[#111827] dark:text-[#f2f2f7]">
+            Новый Год
+          </div>
+          <button onClick={addRow} className={`${iosPrimaryButton} ml-auto`}>
           + Строка
-        </button>
-      </div>
+          </button>
+        </div>
+      </section>
 
-      <div className="overflow-auto rounded-md hidden md:block">
-        <table className="min-w-[900px] w-full text-sm">
-          <thead className="bg-slate-100">
-            <tr>
-              <th className="text-left p-2 w-36">Категория</th>
-              <th className="text-left p-2 w-64">Название</th>
-              <th className="text-left p-2 w-24">Цена</th>
-              <th className="text-left p-2">Описание (по строкам)</th>
-              <th className="text-left p-2 w-64">Картинка</th>
-              <th className="text-left p-2 w-32">Действия</th>
+      <div className={`overflow-auto hidden md:block ${iosPanel}`}>
+        <table className="min-w-[900px] w-full text-sm text-[#111827] dark:text-[#f2f2f7]">
+          <thead className="bg-white/70 dark:bg-[#2c2c2e]/70">
+            <tr className="text-[11px] uppercase tracking-[0.04em] text-[#6b7280] dark:text-[#8e8e93]">
+              <th className="text-left p-3 w-36 font-semibold">Категория</th>
+              <th className="text-left p-3 w-64 font-semibold">Название</th>
+              <th className="text-left p-3 w-24 font-semibold">Цена</th>
+              <th className="text-left p-3 font-semibold">Описание (по строкам)</th>
+              <th className="text-left p-3 w-64 font-semibold">Картинка</th>
+              <th className="text-left p-3 w-32 font-semibold">Действия</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-black/5 dark:divide-white/5">
             {items.map((it) => (
-              <tr key={it.id} className="border-t">
-                <td className="p-2">
-                  <input className="rounded-md px-2 py-1 w-full" value="Новый Год" readOnly />
+              <tr key={it.id} className="align-top">
+                <td className="p-3">
+                  <input className={`${iosInputCompact} opacity-80`} value="Новый Год" readOnly />
                 </td>
-                <td className="p-2">
+                <td className="p-3">
                   <input
-                    className="rounded-md px-2 py-1 w-full"
+                    className={iosInputCompact}
                     value={it.title}
                     onChange={(e) => updateItem(it.id, { title: e.target.value })}
                   />
                 </td>
-                <td className="p-2">
+                <td className="p-3">
                   <input
                     type="number"
-                    className="rounded-md px-2 py-1 w-24"
+                    className={iosInputCompact}
                     value={it.price}
                     onChange={(e) => updateItem(it.id, { price: Number(e.target.value) })}
                   />
                 </td>
-                <td className="p-2">
+                <td className="p-3">
                   <textarea
-                    className="rounded-md px-2 py-1 w-full h-24"
+                    className={`${iosInputCompact} h-24 resize-y`}
                     value={it.description.join('\n')}
                     onChange={(e) =>
                       updateItem(it.id, {
@@ -266,10 +284,46 @@ export default function NewYearPage() {
                     }
                   />
                 </td>
-                <td className="p-2">
+                <td className="p-3">
+                  <div className="space-y-2">
+                    <input
+                      className={iosInputCompact}
+                      value={it.images?.[0]?.url ?? ''}
+                      onChange={(e) =>
+                        updateItem(it.id, { images: [{ id: 'img-1', url: e.target.value }] })
+                      }
+                    />
+                    {(it.images?.[0]?.url ?? '').trim() ? (
+                      <button
+                        type="button"
+                        className="relative inline-block group"
+                        onClick={() => triggerPickImage(it.id)}
+                      >
+                        <img
+                          src={it.images?.[0]?.url ?? ''}
+                          alt={it.title}
+                          className="h-16 w-24 object-cover rounded-xl border border-black/10 dark:border-white/10"
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/25 opacity-0 group-hover:opacity-100 transition">
+                          <HiOutlineCamera className="text-white" />
+                        </span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => triggerPickImage(it.id)}
+                        className="h-16 w-24 rounded-xl border border-dashed border-black/20 dark:border-white/20 bg-white dark:bg-[#2c2c2e] text-[11px] text-[#6b7280] dark:text-[#8e8e93] flex flex-col items-center justify-center gap-1"
+                      >
+                        <HiOutlineCamera className="text-base" />
+                        Загрузить
+                      </button>
+                    )}
+                  </div>
+                </td>
+                <td className="p-3">
                   <button
                     onClick={() => confirm(it.id)}
-                    className="px-2 py-1 rounded border text-red-600 hover:bg-red-50"
+                    className={iosDangerButton}
                     title="Удалить блюдо"
                   >
                     Удалить
@@ -285,38 +339,38 @@ export default function NewYearPage() {
         {items.map((it) => (
           <div
             key={it.id}
-            className="shadow-lg rounded-xl bg-white text-gray dark:text-ligt dark:bg-darkCard p-3 mb-4 space-y-3"
+            className={`${iosPanel} p-4 space-y-3`}
           >
             <div className="space-y-1">
-              <div className="text-xs text-slate-500">Категория</div>
+              <div className={iosLabel}>Категория</div>
               <input
-                className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full"
+                className={`${iosInputCompact} opacity-80`}
                 value="Новый Год"
                 readOnly
               />
             </div>
             <div className="space-y-1">
-              <div className="text-xs text-slate-500">Название</div>
+              <div className={iosLabel}>Название</div>
               <input
-                className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full"
+                className={iosInputCompact}
                 value={it.title}
                 onChange={(e) => updateItem(it.id, { title: e.target.value })}
               />
             </div>
             <div className="flex items-center gap-2">
               <div className="flex-1 space-y-1">
-                <div className="text-xs text-slate-500">Цена</div>
+                <div className={iosLabel}>Цена</div>
                 <input
                   type="number"
-                  className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full"
+                  className={iosInputCompact}
                   value={it.price}
                   onChange={(e) => updateItem(it.id, { price: Number(e.target.value) })}
                 />
               </div>
               <div className="flex-1 space-y-1">
-                <div className="text-xs text-slate-500">Картинка (URL)</div>
+                <div className={iosLabel}>Картинка (URL)</div>
                 <input
-                  className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full"
+                  className={iosInputCompact}
                   value={it.images?.[0]?.url ?? ''}
                   onChange={(e) =>
                     updateItem(it.id, { images: [{ id: 'img-1', url: e.target.value }] })
@@ -325,26 +379,39 @@ export default function NewYearPage() {
               </div>
             </div>
             <div className="space-y-1">
-              <div className="text-xs text-slate-500">Картинка (нажмите, чтобы загрузить)</div>
+              <div className={iosLabel}>Картинка (нажмите, чтобы загрузить)</div>
               <div className="relative group">
-                <img
-                  src={it.images?.[0]?.url ?? ''}
-                  alt={it.title}
-                  className="max-h-28 w-full object-cover rounded-xl cursor-pointer"
-                  onClick={() => triggerPickImage(it.id)}
-                />
-                <div
-                  className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/30 opacity-0 group-hover:opacity-100 transition"
-                  onClick={() => triggerPickImage(it.id)}
-                >
-                  <HiOutlineCamera className="text-white text-2xl" />
-                </div>
+                {(it.images?.[0]?.url ?? '').trim() ? (
+                  <>
+                    <img
+                      src={it.images?.[0]?.url ?? ''}
+                      alt={it.title}
+                      className="max-h-28 w-full object-cover rounded-2xl border border-black/10 dark:border-white/10 cursor-pointer"
+                      onClick={() => triggerPickImage(it.id)}
+                    />
+                    <div
+                      className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/30 opacity-0 group-hover:opacity-100 transition"
+                      onClick={() => triggerPickImage(it.id)}
+                    >
+                      <HiOutlineCamera className="text-white text-2xl" />
+                    </div>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="w-full h-28 rounded-2xl border border-dashed border-black/20 dark:border-white/20 bg-white dark:bg-[#2c2c2e] text-[#8e8e93] flex flex-col items-center justify-center gap-2"
+                    onClick={() => triggerPickImage(it.id)}
+                  >
+                    <HiOutlineCamera className="text-3xl" />
+                    <span className="text-sm">Загрузить фото</span>
+                  </button>
+                )}
               </div>
             </div>
             <div className="space-y-1">
-              <div className="text-xs text-slate-500">Описание (по строкам)</div>
+              <div className={iosLabel}>Описание (по строкам)</div>
               <textarea
-                className="rounded-md border border-gray-300 dark:border-dark px-2 py-1 w-full h-28"
+                className={`${iosInputCompact} h-28 resize-y`}
                 value={it.description.join('\n')}
                 onChange={(e) =>
                   updateItem(it.id, {
@@ -356,7 +423,7 @@ export default function NewYearPage() {
             <div className="pt-1">
               <button
                 onClick={() => confirm(it.id)}
-                className="w-full px-3 py-2 rounded-md bg-red text-white"
+                className={`${iosDangerButton} w-full`}
                 title="Удалить блюдо"
               >
                 Удалить блюдо

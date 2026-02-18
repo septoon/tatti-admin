@@ -4,6 +4,7 @@ import SimpleItemsEditor from '../../components/SimpleItemsEditor'
 import Loader from '../../components/Loader/Loader'
 import { MainButton } from '@twa-dev/sdk/react'
 import WebApp from '@twa-dev/sdk'
+import { iosUi } from '../../styles/ios'
 
 // Унифицированная строка редактора (поддержим лишние поля, чтобы не потерять их при сохранении)
 type Row = {
@@ -141,23 +142,57 @@ export default function ServicePackagesPage() {
   }
 
   if (loading) return <Loader />
-  if (error) return <div className="p-4 text-red-600">{error}</div>
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-red-500/20 bg-red-50/80 px-4 py-3 text-sm text-red-700 dark:border-red-400/20 dark:bg-red-900/20 dark:text-red-300">
+        {error}
+      </div>
+    )
+  }
+
+  const iosFontFamily = iosUi.fontFamily
+  const iosPanel = iosUi.panel
+  const iosPrimaryButton = iosUi.primaryButton
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <div className="font-semibold">Пакеты услуг</div>
-        <button onClick={addPkg} className="ml-auto px-3 py-1.5 rounded-md bg-mainBtn text-white">+ Пакет</button>
-      </div>
+    <div className="space-y-6 pb-2" style={{ fontFamily: iosFontFamily }}>
+      <section className={`${iosPanel} p-3 md:p-4`}>
+        <div className="flex items-center gap-2">
+          <div className="text-[22px] leading-7 font-semibold tracking-[-0.01em] text-[#111827] dark:text-[#f2f2f7]">
+            Пакеты услуг
+          </div>
+          <button onClick={addPkg} className={`${iosPrimaryButton} ml-auto`}>
+            + Пакет
+          </button>
+        </div>
+      </section>
 
-      <SimpleItemsEditor rows={pkgs} setRows={setPkgs} onDeleteRow={delPkg} enableImageUpload={true} />
+      <SimpleItemsEditor
+        rows={pkgs}
+        setRows={setPkgs}
+        onDeleteRow={delPkg}
+        enableImageUpload={true}
+        iosStyles={true}
+      />
 
-      <div className="flex items-center gap-2 pt-4">
-        <div className="font-semibold">Дополнительно</div>
-        <button onClick={addExtra} className="ml-auto px-3 py-1.5 rounded-md bg-mainBtn text-white">+ Услуга</button>
-      </div>
+      <section className={`${iosPanel} p-3 md:p-4`}>
+        <div className="flex items-center gap-2">
+          <div className="text-[20px] leading-6 font-semibold tracking-[-0.01em] text-[#111827] dark:text-[#f2f2f7]">
+            Дополнительно
+          </div>
+          <button onClick={addExtra} className={`${iosPrimaryButton} ml-auto`}>
+            + Услуга
+          </button>
+        </div>
+      </section>
 
-      <SimpleItemsEditor rows={extras} setRows={setExtras} onDeleteRow={delExtra} enableImageUpload={true} />
+      <SimpleItemsEditor
+        rows={extras}
+        setRows={setExtras}
+        onDeleteRow={delExtra}
+        enableImageUpload={true}
+        iosStyles={true}
+      />
       <MainButton text={saving ? 'Сохранение...' : 'Сохранить'} onClick={onSave} disabled={saving} />
     </div>
   )
