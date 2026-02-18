@@ -16,5 +16,5 @@ export const iosUi = {
   subtleButton:
     'inline-flex items-center justify-center rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#2c2c2e] px-3 py-2 text-[13px] font-medium text-[#111827] dark:text-[#f2f2f7] transition hover:bg-[#f8f9ff] dark:hover:bg-[#343438] disabled:opacity-40',
   dangerButton:
-    'inline-flex items-center justify-center rounded-xl bg-white px-3 py-3 text-md font-400 text-[#ff3b30] shadow-[0_8px_18px_rgba(255,59,48,0.25)] transition hover:bg-[#e03229] active:scale-[0.99]',
+    'inline-flex items-center justify-center rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#2c2c2e] px-3 py-3 text-md font-400 text-[#ff3b30] transition hover:bg-[#e03229] active:scale-[0.99]',
 } as const

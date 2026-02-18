@@ -63,8 +63,8 @@ export default function AddItemSheet({
       className="ios-add-item-sheet"
       header={false}
       expandOnContentDrag
-      snapPoints={({ maxHeight }) => Math.min(maxHeight * 0.88, 860)}
-      defaultSnap={({ maxHeight }) => Math.min(maxHeight * 0.88, 860)}
+      snapPoints={({ maxHeight }) => Math.min(maxHeight * 0.78, 860)}
+      defaultSnap={({ maxHeight }) => Math.min(maxHeight * 0.78, 860)}
     >
       <form
         ref={formRef}
