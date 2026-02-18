@@ -42,7 +42,7 @@ export default function App() {
 
   return (
     <div className="app-shell-safe-area max-w-7xl h-full mx-auto space-y-4 pt-8">
-      {!hasAccess ? (
+      {hasAccess ? (
         <>
           <NavTabs value={tab} onChange={setTab} />
 
