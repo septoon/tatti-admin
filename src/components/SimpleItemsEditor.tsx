@@ -1,8 +1,8 @@
 import React from 'react';
-import axios from 'axios'
+import { uploadAdminImage, type AdminImageScope } from '../lib/api'
+import { convertImageToWebp } from '../lib/imageToWebp'
+import { useConfirm } from './ConfirmProvider'
 import { iosUi } from '../styles/ios'
-
-const getWebApp = () => (typeof window !== 'undefined' ? (window as any)?.Telegram?.WebApp : undefined)
 
 export type Item = {
   name: string;
@@ -19,7 +19,8 @@ type Props = {
   showPrice?: boolean;
   showImage?: boolean;
   showDescription?: boolean;
-  enableImageUpload?: boolean; // кнопка заглушена
+  enableImageUpload?: boolean;
+  uploadScope?: AdminImageScope;
   iosStyles?: boolean;
 };
 
@@ -32,8 +33,10 @@ export default function SimpleItemsEditor({
   showImage = true,
   showDescription = true,
   enableImageUpload = false,
+  uploadScope,
   iosStyles = false,
 }: Props) {
+  const confirmDialog = useConfirm()
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const [uploadTarget, setUploadTarget] = React.useState<{ row: number; idx: number | null } | null>(null)
 
@@ -42,27 +45,16 @@ export default function SimpleItemsEditor({
   const iosLabel = iosUi.label
   const iosDangerButton = iosUi.dangerButton
 
-  const confirmDelete = (idx: number) => {
+  const confirmDelete = async (idx: number) => {
     const item = rows[idx]
     const name = item?.name && item.name.trim() !== '' ? item.name : 'новое блюдо'
-    const wa = getWebApp()
-
-    if (!wa) {
-      // Fallback для браузера вне Telegram
-      if (window.confirm(`Вы действительно хотите удалить ${name}? Это действие безвозвратно!`)) {
-        onDeleteRow?.(idx)
-      }
-      return
-    }
-
-    // Telegram WebApp UX
-    try { wa.HapticFeedback?.impactOccurred?.('heavy') } catch {}
-    wa.showConfirm(
-      `Вы действительно хотите удалить ${name}? Это действие безвозвратно!`,
-      (confirmed: boolean) => {
-        if (confirmed) onDeleteRow?.(idx)
-      },
-    )
+    const confirmed = await confirmDialog({
+      title: 'Удалить позицию',
+      message: `Вы действительно хотите удалить ${name}? Это действие безвозвратно.`,
+      confirmText: 'Удалить',
+      tone: 'danger',
+    })
+    if (confirmed) onDeleteRow?.(idx)
   };
 
   const update = (i: number, patch: Partial<Item>) => {
@@ -82,16 +74,27 @@ export default function SimpleItemsEditor({
     const file = e.target.files?.[0]
     if (!file || !uploadTarget) return
     try {
-      const formData = new FormData()
-      formData.append('image', file)
-      const apiKey = process.env.REACT_APP_IMGBB_KEY
-      if (!apiKey) throw new Error('Не задан REACT_APP_IMGBB_KEY')
-      const imgbbUrl = `https://api.imgbb.com/1/upload?key=${apiKey}`
-      const resp = await axios.post(imgbbUrl, formData)
-      const url: string | undefined = resp?.data?.data?.url
-      if (!url) throw new Error('ImgBB вернул пустой URL')
-
       const { row, idx } = uploadTarget
+      if (!uploadScope) throw new Error('Не задан uploadScope для редактора')
+      const current = rows[row]
+      const currentUrl =
+        Array.isArray(current?.image) && typeof idx === 'number'
+          ? String(current.image[idx] || '')
+          : typeof current?.image === 'string'
+            ? current.image
+            : ''
+      const webpFile = await convertImageToWebp(file)
+      const url = await uploadAdminImage({
+        scope: uploadScope,
+        webpFile,
+        oldImageUrl: currentUrl || undefined,
+        fileStem:
+          (current?.name || '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '') || `image-${row + 1}${typeof idx === 'number' ? `-${idx + 1}` : ''}`,
+      })
+
       setRows(prev => {
         const next = Array.isArray(prev) ? [...prev] : []
         const cur = next[row] || { name: '', price: 0, image: '', description: [] }
@@ -290,7 +293,7 @@ export default function SimpleItemsEditor({
               )}
               <td className={iosStyles ? 'p-3 text-right' : 'p-2 text-right'}>
                 <button
-                  onClick={() => confirmDelete(i)}
+                  onClick={() => void confirmDelete(i)}
                   className={iosStyles ? `${iosDangerButton} ml-auto` : 'ml-auto bg-red text-white opacity-80 px-2 py-0.5 rounded-md z-0'}>
                   Удалить
                 </button>
@@ -367,7 +370,7 @@ export default function SimpleItemsEditor({
           )}
           <div className="pt-2 text-right">
             <button
-              onClick={() => confirmDelete(i)}
+              onClick={() => void confirmDelete(i)}
               className={`${iosDangerButton} w-full`}
             >
               Удалить

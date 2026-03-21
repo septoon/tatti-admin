@@ -1,52 +1,102 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { NavTabs } from './components/NavTabs'
+import PinGate from './components/PinGate'
+import { ConfirmProvider } from './components/ConfirmProvider'
 import MenuPage from './features/menu/MenuPage'
 import ReviewsPage from './features/reviews/ReviewsPage'
 import CakesPage from './features/cakes/CakesPage'
 import EasterPage from './features/easter/EasterPage'
 import ServicePackagesPage from './features/servicePackages/ServicePackagesPage'
 import InfoPage from './features/info/InfoPage'
-import { chatIds } from './common/access'
-import Stop from './common/stop.png'
 import NewYearPage from './features/new-year/NewYearPage'
+import Loader from './components/Loader/Loader'
+import { clearStoredAdminPin, getStoredAdminPin, storeAdminPin } from './lib/adminAuth'
+import { verifyAdminAccess } from './lib/api'
 
-// Safe getter to avoid TS error when Telegram is not available
-const getWebApp = (): any | undefined =>
-  (typeof window !== 'undefined' ? (window as any)?.Telegram?.WebApp : undefined)
+type AuthStatus = 'checking' | 'locked' | 'ready'
 
-export default function App() {
-  const WebApp = getWebApp()
-  // userId может отсутствовать вне Telegram — учитываем это в типе
-  const userId: number | undefined = WebApp?.initDataUnsafe?.user?.id as number | undefined
+function AppContent() {
+  const [tab, setTab] = React.useState<string>('Фуршетное Меню')
+  const [authStatus, setAuthStatus] = React.useState<AuthStatus>('checking')
+  const [authError, setAuthError] = React.useState<string | null>(null)
+  const [authLoading, setAuthLoading] = React.useState(false)
 
-  useEffect(() => {
-    try {
-      if (!WebApp) {
-        console.warn('Telegram WebApp API недоступен (запуск вне Telegram).')
-        return
-      }
-      WebApp.ready?.()
-      WebApp.expand?.()
-      WebApp.disableVerticalSwipes?.()
-      WebApp.enableClosingConfirmation?.()
-      WebApp.requestFullscreen?.()
-    } catch (error) {
-      console.error('Ошибка при инициализации Telegram WebApp:', error)
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const applyTheme = () => {
+      document.documentElement.setAttribute('data-color-scheme', media.matches ? 'dark' : 'light')
+    }
+
+    applyTheme()
+    media.addEventListener?.('change', applyTheme)
+
+    return () => media.removeEventListener?.('change', applyTheme)
+  }, [])
+
+  React.useEffect(() => {
+    const storedPin = getStoredAdminPin()
+    if (!storedPin) {
+      setAuthStatus('locked')
+      return
+    }
+
+    let cancelled = false
+    setAuthLoading(true)
+
+    verifyAdminAccess(storedPin)
+      .then(() => {
+        if (cancelled) return
+        setAuthStatus('ready')
+        setAuthError(null)
+      })
+      .catch(() => {
+        if (cancelled) return
+        clearStoredAdminPin()
+        setAuthStatus('locked')
+        setAuthError('Сохранённый PIN больше не подходит. Введите актуальный код.')
+      })
+      .finally(() => {
+        if (cancelled) return
+        setAuthLoading(false)
+      })
+
+    return () => {
+      cancelled = true
     }
   }, [])
 
-  const [tab, setTab] = React.useState<string>('Фуршетное Меню')
+  async function handlePinSubmit(pin: string) {
+    setAuthLoading(true)
+    setAuthError(null)
+    try {
+      await verifyAdminAccess(pin)
+      storeAdminPin(pin)
+      setAuthStatus('ready')
+    } catch (error) {
+      clearStoredAdminPin()
+      setAuthStatus('locked')
+      setAuthError(error instanceof Error ? error.message : 'Не удалось проверить PIN')
+    } finally {
+      setAuthLoading(false)
+    }
+  }
 
-  // Доступ только если userId — число и есть в списке
-  const hasAccess = typeof userId === 'number' && chatIds.includes(userId)
+  function handleLogout() {
+    clearStoredAdminPin()
+    setAuthStatus('locked')
+    setAuthError(null)
+  }
 
   return (
-    <div className="app-shell-safe-area max-w-7xl h-full mx-auto space-y-4 pt-8">
-      {hasAccess ? (
+    <div className="app-shell-safe-area mx-auto max-w-7xl space-y-4">
+      {authStatus === 'checking' ? (
+        <Loader />
+      ) : authStatus === 'ready' ? (
         <>
-          <NavTabs value={tab} onChange={setTab} />
-
-          <div>
+          <NavTabs value={tab} onChange={setTab} onLock={handleLogout} />
+          <div className="pb-32">
             {tab === 'Фуршетное Меню' && <MenuPage />}
             {tab === 'Новый Год' && <NewYearPage />}
             {tab === 'Отзывы' && <ReviewsPage />}
@@ -57,14 +107,16 @@ export default function App() {
           </div>
         </>
       ) : (
-        <div className='flex w-full h-full justify-center pt-48'>
-          <div className='flex flex-col items-center bg-white dark:bg-darkCard rounded-xl p-4 '>
-            <img src={Stop} alt="Stop" className='w-16 mb-4'/>
-            <h1 className='font-bold text-center dark:text-white'>К сожалению, у Вас нет доступа к этой админке</h1>
-            <span className='text-gray text-center'>Необходимо запросить доступ у администратора</span>
-          </div>
-        </div>
+        <PinGate loading={authLoading} error={authError} onSubmit={handlePinSubmit} />
       )}
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <ConfirmProvider>
+      <AppContent />
+    </ConfirmProvider>
   )
 }

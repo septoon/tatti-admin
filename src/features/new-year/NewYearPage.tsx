@@ -1,12 +1,12 @@
 import React from 'react'
 import { HiOutlineCamera } from 'react-icons/hi'
-import { MainButton } from '@twa-dev/sdk/react'
-import WebApp from '@twa-dev/sdk'
+import BottomActionBar from '../../components/BottomActionBar'
 import Loader from '../../components/Loader/Loader'
-import { getFile, putFile } from '../../lib/api'
+import { getFile, putFile, uploadAdminImage } from '../../lib/api'
 import SimpleAddItemSheet, { type SimpleItemDraft } from '../../components/SimpleAddItemSheet'
+import { useConfirm } from '../../components/ConfirmProvider'
 import { iosUi } from '../../styles/ios'
-import { uploadToImgbb } from '../../lib/uploadToImgbb'
+import { convertImageToWebp } from '../../lib/imageToWebp'
 
 type ImageEntry = { id: string; url: string }
 
@@ -119,6 +119,7 @@ function createEmptyDraft(): SimpleItemDraft {
 }
 
 export default function NewYearPage() {
+  const confirmDialog = useConfirm()
   const [items, setItems] = React.useState<NewYearItem[]>([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
@@ -191,7 +192,6 @@ export default function NewYearPage() {
     if (addingItem) return
     setAddingItem(true)
     try {
-      WebApp.HapticFeedback.impactOccurred('heavy')
       const parsedPrice = Number(draft.price)
       const price = Number.isFinite(parsedPrice) ? parsedPrice : 0
       const description = draft.description
@@ -201,7 +201,12 @@ export default function NewYearPage() {
 
       let imageUrl = draft.imageUrl.trim()
       if (newItemImageFile) {
-        imageUrl = await uploadToImgbb(newItemImageFile)
+        const webpFile = await convertImageToWebp(newItemImageFile)
+        imageUrl = await uploadAdminImage({
+          scope: 'new-year',
+          webpFile,
+          fileStem: `${slugify(draft.name) || 'new-year'}-${Date.now()}`,
+        })
       }
 
       setItems((prev) => [
@@ -237,16 +242,16 @@ export default function NewYearPage() {
     void onSave()
   }
 
-  const confirm = (id: string) => {
+  const confirmDelete = async (id: string) => {
     const item = items.find((i) => i.id === id)
     const name = item?.title && item.title.trim() !== '' ? item.title : 'новое блюдо'
-    WebApp.HapticFeedback.impactOccurred('heavy')
-    WebApp.showConfirm(
-      `Вы действительно хотите удалить ${name}? Это действие безвозвратно!`,
-      (confirmed) => {
-        if (confirmed) deleteItem(id)
-      },
-    )
+    const confirmed = await confirmDialog({
+      title: 'Удалить блюдо',
+      message: `Вы действительно хотите удалить ${name}? Это действие безвозвратно.`,
+      confirmText: 'Удалить',
+      tone: 'danger',
+    })
+    if (confirmed) deleteItem(id)
   }
 
   function triggerPickImage(id: string) {
@@ -259,7 +264,15 @@ export default function NewYearPage() {
     if (!file || !uploadingId) return
     try {
       setSaving(true)
-      const url = await uploadToImgbb(file)
+      const item = items.find((entry) => entry.id === uploadingId)
+      const currentUrl = item?.images?.[0]?.url?.trim() || ''
+      const webpFile = await convertImageToWebp(file)
+      const url = await uploadAdminImage({
+        scope: 'new-year',
+        webpFile,
+        oldImageUrl: currentUrl || undefined,
+        fileStem: `${slugify(item?.title || '') || 'new-year'}-${uploadingId}`,
+      })
       updateItem(uploadingId, {
         images: [{ id: 'img-1', url }],
       })
@@ -400,7 +413,7 @@ export default function NewYearPage() {
                 </td>
                 <td className="p-3">
                   <button
-                    onClick={() => confirm(it.id)}
+                    onClick={() => void confirmDelete(it.id)}
                     className={iosDangerButton}
                     title="Удалить блюдо"
                   >
@@ -500,7 +513,7 @@ export default function NewYearPage() {
             </div>
             <div className="pt-1">
               <button
-                onClick={() => confirm(it.id)}
+                onClick={() => void confirmDelete(it.id)}
                 className={`${iosDangerButton} w-full`}
                 title="Удалить блюдо"
               >
@@ -529,11 +542,11 @@ export default function NewYearPage() {
         onImageChange={handleAddItemImageChange}
         submitting={addingItem}
       />
-      <MainButton
+      <BottomActionBar
         text={isAddDialogOpen ? (addingItem ? 'Добавление...' : 'Добавить') : (saving ? 'Сохранение...' : 'Сохранить')}
         onClick={onMainButtonClick}
         disabled={isAddDialogOpen ? addingItem : saving}
-        progress={isAddDialogOpen ? addingItem : saving}
+        loading={isAddDialogOpen ? addingItem : saving}
       />
       <input
         ref={fileInputRef}

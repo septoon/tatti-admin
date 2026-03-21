@@ -1,12 +1,11 @@
 import React from 'react'
-import { getFile, putFile } from '../../lib/api'
+import { getFile, putFile, uploadAdminImage } from '../../lib/api'
 import SimpleItemsEditor, { type Item } from '../../components/SimpleItemsEditor'
 import SimpleAddItemSheet, { type SimpleItemDraft } from '../../components/SimpleAddItemSheet'
 import Loader from '../../components/Loader/Loader'
-import { MainButton } from '@twa-dev/sdk/react'
-import WebApp from '@twa-dev/sdk'
+import BottomActionBar from '../../components/BottomActionBar'
 import { iosUi } from '../../styles/ios'
-import { uploadToImgbb } from '../../lib/uploadToImgbb'
+import { convertImageToWebp } from '../../lib/imageToWebp'
 
 function easterObjectToRows(obj: any): Item[] {
   if (!obj || typeof obj !== 'object') return []
@@ -129,7 +128,6 @@ export default function EasterPage() {
     if (addingItem) return
     setAddingItem(true)
     try {
-      WebApp.HapticFeedback.impactOccurred('heavy')
       const parsedPrice = Number(draft.price)
       const price = Number.isFinite(parsedPrice) ? parsedPrice : 0
       const description = draft.description
@@ -139,7 +137,12 @@ export default function EasterPage() {
 
       let imageUrl = draft.imageUrl.trim()
       if (newItemImageFile) {
-        imageUrl = await uploadToImgbb(newItemImageFile)
+        const webpFile = await convertImageToWebp(newItemImageFile)
+        imageUrl = await uploadAdminImage({
+          scope: 'easter',
+          webpFile,
+          fileStem: `${slugify(draft.name) || 'easter'}-${Date.now()}`,
+        })
       }
 
       setRows((prev) => [
@@ -221,6 +224,7 @@ export default function EasterPage() {
         setRows={setRows}
         onDeleteRow={deleteRow}
         enableImageUpload={true}
+        uploadScope="easter"
         iosStyles={true}
       />
       <SimpleAddItemSheet
@@ -241,11 +245,11 @@ export default function EasterPage() {
         onImageChange={handleAddItemImageChange}
         submitting={addingItem}
       />
-      <MainButton
+      <BottomActionBar
         text={isAddDialogOpen ? (addingItem ? 'Добавление...' : 'Добавить') : (saving ? 'Сохранение...' : 'Сохранить')}
         onClick={onMainButtonClick}
         disabled={isAddDialogOpen ? addingItem : saving}
-        progress={isAddDialogOpen ? addingItem : saving}
+        loading={isAddDialogOpen ? addingItem : saving}
       />
     </div>
   )

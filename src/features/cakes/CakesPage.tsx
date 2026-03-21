@@ -1,12 +1,11 @@
 import React from 'react'
-import { getFile, putFile } from '../../lib/api'
+import { getFile, putFile, uploadAdminImage } from '../../lib/api'
 import SimpleItemsEditor from '../../components/SimpleItemsEditor'
 import SimpleAddItemSheet, { type SimpleItemDraft } from '../../components/SimpleAddItemSheet'
 import Loader from '../../components/Loader/Loader'
-import { MainButton } from '@twa-dev/sdk/react'
-import WebApp from '@twa-dev/sdk'
+import BottomActionBar from '../../components/BottomActionBar'
 import { iosUi } from '../../styles/ios'
-import { uploadToImgbb } from '../../lib/uploadToImgbb'
+import { convertImageToWebp } from '../../lib/imageToWebp'
 
 // Тип строки редактора: базовые поля + служебные
 type Row = {
@@ -149,7 +148,6 @@ export default function CakesPage() {
     if (addingItem) return
     setAddingItem(true)
     try {
-      WebApp.HapticFeedback.impactOccurred('heavy')
       const parsedPrice = Number(draft.price)
       const price = Number.isFinite(parsedPrice) ? parsedPrice : 0
       const description = draft.description
@@ -159,7 +157,12 @@ export default function CakesPage() {
 
       let imageUrl = draft.imageUrl.trim()
       if (newItemImageFile) {
-        imageUrl = await uploadToImgbb(newItemImageFile)
+        const webpFile = await convertImageToWebp(newItemImageFile)
+        imageUrl = await uploadAdminImage({
+          scope: 'cakes',
+          webpFile,
+          fileStem: `${slugify(draft.name) || 'cake'}-${Date.now()}`,
+        })
       }
 
       setRows((prev) => [
@@ -241,6 +244,7 @@ export default function CakesPage() {
         setRows={setRows}
         onDeleteRow={deleteRow}
         enableImageUpload={true}
+        uploadScope="cakes"
         iosStyles={true}
       />
       <SimpleAddItemSheet
@@ -261,11 +265,11 @@ export default function CakesPage() {
         onImageChange={handleAddItemImageChange}
         submitting={addingItem}
       />
-      <MainButton
+      <BottomActionBar
         text={isAddDialogOpen ? (addingItem ? 'Добавление...' : 'Добавить') : (saving ? 'Сохранение...' : 'Сохранить')}
         onClick={onMainButtonClick}
         disabled={isAddDialogOpen ? addingItem : saving}
-        progress={isAddDialogOpen ? addingItem : saving}
+        loading={isAddDialogOpen ? addingItem : saving}
       />
     </div>
   )

@@ -1,9 +1,9 @@
 import React from 'react';
 import { getMenu, saveMenu, uploadMenuImage } from '../../lib/api';
 import type { NormalizedMenu, Item } from '../../lib/types';
-import WebApp from '@twa-dev/sdk';
 import Loader from '../../components/Loader/Loader';
-import { MainButton } from '@twa-dev/sdk/react';
+import BottomActionBar from '../../components/BottomActionBar';
+import { useConfirm } from '../../components/ConfirmProvider';
 import { IoSearch } from 'react-icons/io5';
 import { HiOutlineCamera } from 'react-icons/hi';
 import { convertImageToWebp } from '../../lib/imageToWebp';
@@ -34,6 +34,7 @@ function createEmptyDraft(categoryId: string): NewItemDraft {
 }
 
 export default function MenuPage() {
+  const confirmDialog = useConfirm()
   const [data, setData] = React.useState<NormalizedMenu | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -51,16 +52,6 @@ export default function MenuPage() {
   const addDialogFileInputRef = React.useRef<HTMLInputElement>(null)
   const addDialogFormRef = React.useRef<HTMLFormElement>(null)
   const [uploadingId, setUploadingId] = React.useState<string | null>(null)
-
-  React.useEffect(() => {
-    const apply = () => {
-      const scheme = WebApp.colorScheme; // 'light' | 'dark'
-      document.documentElement.setAttribute('data-color-scheme', scheme);
-    };
-    apply();
-    WebApp.onEvent('themeChanged', apply);
-    return () => WebApp.offEvent('themeChanged', apply);
-  }, []);
 
   React.useEffect(() => {
     (async () => {
@@ -389,16 +380,16 @@ export default function MenuPage() {
     }
   }
 
-  const confirm = (id: string) => {
+  const confirmDelete = async (id: string) => {
     const item = data?.items.find((i) => i.id === id);
     const name = item?.title && item.title.trim() !== '' ? item.title : 'новое блюдо';
-    WebApp.HapticFeedback.impactOccurred('heavy');
-    WebApp.showConfirm(
-      `Вы действительно хотите удалить ${name}? Это действие безвозвратно!`,
-      (confirmed) => {
-        if (confirmed) deleteItem(id);
-      },
-    );
+    const confirmed = await confirmDialog({
+      title: 'Удалить блюдо',
+      message: `Вы действительно хотите удалить ${name}? Это действие безвозвратно.`,
+      confirmText: 'Удалить',
+      tone: 'danger',
+    })
+    if (confirmed) deleteItem(id)
   };
 
   async function onSave() {
@@ -605,7 +596,7 @@ export default function MenuPage() {
                         ))}
                       </select>
                       <button
-                        onClick={() => confirm(it.id)}
+                        onClick={() => void confirmDelete(it.id)}
                         className={`${iosDangerButton} w-full`}
                         title="Удалить блюдо"
                       >
@@ -742,7 +733,7 @@ export default function MenuPage() {
               </div>
               <div className="pt-1">
                 <button
-                  onClick={() => confirm(it.id)}
+                  onClick={() => void confirmDelete(it.id)}
                   className={`${iosDangerButton} w-full`}
                   title="Удалить блюдо"
                 >
@@ -772,11 +763,11 @@ export default function MenuPage() {
         fileInputRef={addDialogFileInputRef}
         onImageChange={handleAddItemImageChange}
       />
-      <MainButton
+      <BottomActionBar
         text={isAddDialogOpen ? (addingItem ? 'Добавление...' : 'Добавить') : (saving ? 'Сохранение...' : 'Сохранить')}
         onClick={onMainButtonClick}
         disabled={isAddDialogOpen ? addingItem : saving}
-        progress={isAddDialogOpen ? addingItem : saving}
+        loading={isAddDialogOpen ? addingItem : saving}
       />
       <input
         ref={fileInputRef}

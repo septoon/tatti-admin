@@ -2,8 +2,7 @@ import React from 'react'
 import { getFile, putFile } from '../../lib/api'
 import SimpleItemsEditor from '../../components/SimpleItemsEditor'
 import Loader from '../../components/Loader/Loader'
-import { MainButton } from '@twa-dev/sdk/react'
-import WebApp from '@twa-dev/sdk'
+import BottomActionBar from '../../components/BottomActionBar'
 import { iosUi } from '../../styles/ios'
 
 // Строка редактора для INFO (используем только image, остальные поля игнорируются при сохранении)
@@ -49,7 +48,6 @@ export default function InfoPage() {
   }, [])
 
   const addRow = () => {
-    WebApp.HapticFeedback.impactOccurred('heavy')
     setRows((prev) => [...prev, { image: '', name: '', price: 0, description: [] }])
   }
   const deleteRow = (idx: number) => setRows((prev) => prev.filter((_, i) => i !== idx))
@@ -98,12 +96,13 @@ export default function InfoPage() {
         setRows={setRows}
         onDeleteRow={deleteRow}
         enableImageUpload={true}
+        uploadScope="info"
         iosStyles={true}
       />
       <div className={`${iosPanel} px-4 py-3 text-xs text-[#6b7280] dark:text-[#8e8e93]`}>
         Совет: редактируй только колонку <b>Картинка (URL)</b>. Остальные поля будут проигнорированы при сохранении.
       </div>
-      <MainButton text={saving ? 'Сохранение...' : 'Сохранить'} onClick={onSave} disabled={saving} />
+      <BottomActionBar text={saving ? 'Сохранение...' : 'Сохранить'} onClick={onSave} disabled={saving} loading={saving} />
     </div>
   )
 }

@@ -1,11 +1,11 @@
 import React from 'react';
-import WebApp from '@twa-dev/sdk';
 import { MdOutlineRateReview, MdOutlineRestaurantMenu } from 'react-icons/md';
 import { HiCake } from 'react-icons/hi';
 import { GiEasterEgg } from 'react-icons/gi';
 import { BsFillInfoCircleFill } from 'react-icons/bs';
 import { LuPackageOpen } from 'react-icons/lu';
 import { TbChristmasBall } from 'react-icons/tb';
+import { HiOutlineLockClosed } from 'react-icons/hi';
 import { iosUi } from '../styles/ios';
 
 type Tab = {
@@ -14,7 +14,15 @@ type Tab = {
   shortLabel: string
 }
 
-export function NavTabs({ value, onChange }: { value: string; onChange: (k: string) => void }) {
+export function NavTabs({
+  value,
+  onChange,
+  onLock,
+}: {
+  value: string
+  onChange: (k: string) => void
+  onLock: () => void
+}) {
   const tabs: Tab[] = [
     { key: 'Фуршетное Меню', icon: <MdOutlineRestaurantMenu />, shortLabel: 'Меню' },
     { key: 'Новый Год', icon: <TbChristmasBall />, shortLabel: 'Новый год' },
@@ -33,9 +41,20 @@ export function NavTabs({ value, onChange }: { value: string; onChange: (k: stri
       }}
     >
       <div className="w-full flex flex-col items-center">
-        <h1 className="mb-4 px-2 text-[24px] leading-7 font-semibold tracking-[-0.01em] text-[#111827] dark:text-[#f2f2f7] text-center">
-          {value}
-        </h1>
+        <div className="mb-4 flex w-full items-center gap-3 px-1">
+          <h1 className="flex-1 px-2 text-center text-[24px] leading-7 font-semibold tracking-[-0.01em] text-[#111827] dark:text-[#f2f2f7]">
+            {value}
+          </h1>
+          <button
+            type="button"
+            onClick={onLock}
+            className={`${iosUi.subtleButton} h-11 w-11 shrink-0 rounded-2xl p-0`}
+            title="Сбросить PIN на этом устройстве"
+            aria-label="Сбросить PIN на этом устройстве"
+          >
+            <HiOutlineLockClosed className="text-[18px]" />
+          </button>
+        </div>
         <div className="no-scrollbar w-full overflow-x-auto pb-1">
           <div className="inline-flex min-w-max gap-2 px-0.5">
             {tabs.map((t) => {
@@ -50,10 +69,7 @@ export function NavTabs({ value, onChange }: { value: string; onChange: (k: stri
                       ? 'border-transparent bg-[#0a84ff] text-white shadow-[0_12px_24px_rgba(10,132,255,0.36)]'
                       : 'border-black/10 dark:border-white/10 bg-white/90 dark:bg-[#2c2c2e] text-[#4b5563] dark:text-[#d1d5db] hover:bg-[#eef2ff] dark:hover:bg-[#343438]'
                   }`}
-                  onClick={() => {
-                    WebApp.HapticFeedback.impactOccurred('heavy');
-                    onChange(t.key);
-                  }}
+                  onClick={() => onChange(t.key)}
                 >
                   <span className="inline-flex items-center gap-2">
                     <span

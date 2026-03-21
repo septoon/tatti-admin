@@ -1,7 +1,7 @@
 import axios from 'axios';
-import WebApp from '@twa-dev/sdk';
 import { normalizeMenuLegacy, denormalizeToLegacy } from './menuNormalize';
 import type { NormalizedMenu } from './types';
+import { getStoredAdminPin } from './adminAuth';
 
 // ⚠️ Не хардкодим URL. Ожидаем REACT_APP_API_BASE из .env (или прокинутый глобально).
 const envBase =
@@ -17,37 +17,34 @@ if (!envBase) {
 
 const baseURL = envBase?.replace(/\/$/, ''); // без завершающего '/'
 export const api = axios.create({ baseURL: baseURL || undefined });
+const adminPinHeader = 'X-Admin-Pin';
 
 const imageReplaceEndpoint =
   (process.env.REACT_APP_IMAGE_REPLACE_ENDPOINT as string) || '/api/images/replace';
 const imageUploadEndpoint =
   (process.env.REACT_APP_IMAGE_UPLOAD_ENDPOINT as string) || '/api/images/upload';
 
-// Добавляем заголовок только если мы реально внутри Telegram и initData есть
 api.interceptors.request.use((config) => {
   config.headers = config.headers ?? {};
-  try {
-    const initData = (WebApp as any)?.initData as string | undefined;
-    if (typeof initData === 'string' && initData.trim().length > 0) {
-      (config.headers as any)['X-Telegram-Init-Data'] = initData;
-    }
-  } catch {}
+  const storedPin = getStoredAdminPin();
+  const hasExplicitPin = Boolean((config.headers as any)[adminPinHeader]);
+  if (storedPin && !hasExplicitPin) {
+    (config.headers as any)[adminPinHeader] = storedPin;
+  }
   return config;
 });
 
-// Универсальный GET (поддержка путей без .json на конце)
+function normalizeJsonFileName(path: string): string {
+  const trimmed = String(path || '').trim().replace(/^\/+/, '');
+  if (!trimmed) throw new Error('Path is required');
+  return trimmed.endsWith('.json') ? trimmed : `${trimmed}.json`;
+}
+
+// Универсальный GET через защищённый admin API.
 async function getJson(path: string) {
-  const withJson = path.endsWith('.json') ? path : `${path}.json`;
-  const url = withJson.startsWith('/') ? withJson : `/${withJson}`;
-  try {
-    const { data } = await api.get(url);
-    return data;
-  } catch (e) {
-    // Попытка без расширения (на случай статической раздачи с extensions: ['json'])
-    const fallback = path.startsWith('/') ? path : `/${path}`;
-    const { data } = await api.get(fallback);
-    return data;
-  }
+  const fileName = normalizeJsonFileName(path);
+  const { data } = await api.get(`/api/data/${fileName}`);
+  return data;
 }
 
 // ---- Меню ----
@@ -90,6 +87,25 @@ export async function appendToArrayFile(fileName: string, entry: any) {
   const { data } = await api.post(url, entry);
   return data;
 }
+
+export async function verifyAdminAccess(pin: string) {
+  const value = String(pin || '').trim();
+  if (!value) throw new Error('Введите PIN-код');
+
+  await api.get('/api/admin/access', {
+    headers: {
+      [adminPinHeader]: value,
+    },
+  });
+}
+
+export type AdminImageScope =
+  | 'cakes'
+  | 'easter'
+  | 'new-year'
+  | 'service-packages'
+  | 'info'
+  | 'reviews';
 
 type ReplaceServerImageTarget = {
   oldUrl: string;
@@ -373,4 +389,35 @@ export async function uploadMenuImage(params: {
   }
 
   throw new Error(`Не удалось загрузить изображение на REACT_APP_API_BASE: ${errors.join(' | ')}`);
+}
+
+export async function uploadAdminImage(params: {
+  scope: AdminImageScope;
+  webpFile: File | Blob;
+  oldImageUrl?: string;
+  fileStem?: string;
+}) {
+  const formData = new FormData();
+  const safeStem = sanitizeFileStem(params.fileStem || '') || `image-${Date.now()}`;
+  const fileName = `${safeStem}.webp`;
+
+  formData.append('image', params.webpFile, fileName);
+  formData.append('scope', params.scope);
+  formData.append('fileName', fileName);
+
+  if (params.oldImageUrl && params.oldImageUrl.trim()) {
+    try {
+      const parsed = new URL(
+        params.oldImageUrl,
+        getApiOrigin() || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost'),
+      );
+      formData.append('oldPath', parsed.pathname);
+    } catch {}
+  }
+
+  const { data } = await api.post('/api/upload/admin-image', formData);
+  const uploadedUrl = pickImageUrlFromResponse(data);
+  if (!uploadedUrl) throw new Error('Сервер не вернул URL изображения');
+
+  return ensureApiHostedImageUrl(uploadedUrl, uploadedUrl);
 }

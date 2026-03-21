@@ -1,12 +1,11 @@
 import React from 'react'
-import { getFile, putFile } from '../../lib/api'
+import { getFile, putFile, uploadAdminImage } from '../../lib/api'
 import SimpleItemsEditor from '../../components/SimpleItemsEditor'
 import SimpleAddItemSheet, { type SimpleItemDraft } from '../../components/SimpleAddItemSheet'
 import Loader from '../../components/Loader/Loader'
-import { MainButton } from '@twa-dev/sdk/react'
-import WebApp from '@twa-dev/sdk'
+import BottomActionBar from '../../components/BottomActionBar'
 import { iosUi } from '../../styles/ios'
-import { uploadToImgbb } from '../../lib/uploadToImgbb'
+import { convertImageToWebp } from '../../lib/imageToWebp'
 
 // Унифицированная строка редактора (поддержим лишние поля, чтобы не потерять их при сохранении)
 type Row = {
@@ -95,6 +94,16 @@ function generateId(seed: number): number {
   return Number(String(Date.now()).slice(-6)) + seed
 }
 
+function slugify(s: string): string {
+  return (s || '')
+    .toString()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9\-]+/g, '')
+    .replace(/\-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 function createEmptyDraft(): SimpleItemDraft {
   return {
     name: '',
@@ -173,7 +182,6 @@ export default function ServicePackagesPage() {
     if (addingItem) return
     setAddingItem(true)
     try {
-      WebApp.HapticFeedback.impactOccurred('heavy')
       const parsedPrice = Number(draft.price)
       const price = Number.isFinite(parsedPrice) ? parsedPrice : 0
       const description = draft.description
@@ -183,7 +191,12 @@ export default function ServicePackagesPage() {
 
       let imageUrl = draft.imageUrl.trim()
       if (newItemImageFile) {
-        imageUrl = await uploadToImgbb(newItemImageFile)
+        const webpFile = await convertImageToWebp(newItemImageFile)
+        imageUrl = await uploadAdminImage({
+          scope: 'service-packages',
+          webpFile,
+          fileStem: `${slugify(draft.name) || addMode}-${Date.now()}`,
+        })
       }
 
       const nextRow: Row = {
@@ -269,6 +282,7 @@ export default function ServicePackagesPage() {
         setRows={setPkgs}
         onDeleteRow={delPkg}
         enableImageUpload={true}
+        uploadScope="service-packages"
         iosStyles={true}
       />
 
@@ -291,6 +305,7 @@ export default function ServicePackagesPage() {
         setRows={setExtras}
         onDeleteRow={delExtra}
         enableImageUpload={true}
+        uploadScope="service-packages"
         iosStyles={true}
       />
       <SimpleAddItemSheet
@@ -311,11 +326,11 @@ export default function ServicePackagesPage() {
         onImageChange={handleAddItemImageChange}
         submitting={addingItem}
       />
-      <MainButton
+      <BottomActionBar
         text={isAddDialogOpen ? (addingItem ? 'Добавление...' : 'Добавить') : (saving ? 'Сохранение...' : 'Сохранить')}
         onClick={onMainButtonClick}
         disabled={isAddDialogOpen ? addingItem : saving}
-        progress={isAddDialogOpen ? addingItem : saving}
+        loading={isAddDialogOpen ? addingItem : saving}
       />
     </div>
   )

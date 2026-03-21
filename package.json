@@ -1,7 +1,7 @@
 {
   "name": "tatti-admin",
   "version": "0.1.0",
-  "homepage": "https://septoon.github.io/tatti-admin",
+  "homepage": "https://admin.tatti-shef.ru",
   "private": true,
   "browserslist": {
     "production": [
@@ -26,7 +26,6 @@
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",
     "@tanstack/react-table": "^8.21.3",
-    "@twa-dev/sdk": "^8.0.2",
     "axios": "^1.7.2",
     "primereact": "^10.9.7",
     "react": "^18.2.0",
